@@ -19,7 +19,7 @@ def usage(script_name):
   print 'usage: ' + script_name + ' <target_program> <crash_directory>'
 
 def wait_and_kill_process(proc):
-  print 'starting to wait...'
+  print '[+] starting to wait...'
   max_time_to_sleep = 10
   time_slept = 0
   time_to_sleep = 0.1
@@ -35,6 +35,7 @@ def wait_and_kill_process(proc):
       try:
         if proc.name == process_name:
           proc.kill()
+          print '[+] process killed'
           break
       except:
         pass
@@ -65,10 +66,10 @@ if __name__ == '__main__':
     t.daemon = True
     t.start()
     # continue monitoring windbg
-    print 'communicating...'
+    print '[+] communicating...'
     (output, err) = process.communicate()
     continue_killing_target_program = False
-    print 'waiting...'
+    print '[+] waiting...'
     exit_code = process.wait()
     process.stdout.close()
     print output
