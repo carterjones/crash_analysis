@@ -57,7 +57,7 @@ if __name__ == '__main__':
   
   for filename in os.listdir(path_to_files):
     # run !exploitable
-    args = [cdb_path, '-g', '-c', '.load msec; !exploitable -v; q', target_program, path_to_files + '\\' + filename]
+    args = [cdb_path, '-g', '-c', 'analyze -v;k;.load msec; !exploitable -v; q', target_program, path_to_files + '\\' + filename]
     print ' '.join(args)
     process = subprocess.Popen(args, stdout=subprocess.PIPE)
     # start a new thread to kill the process if it is still open
