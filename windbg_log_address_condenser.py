@@ -30,10 +30,21 @@ if __name__ == '__main__':
       data = crash_file.read()
       lines = data.split('\n')
       address = None
-      try:
-        address = [x for x in lines if 'eip=' in x][0][len('eip='):len('eip=')+8]
-      except:
-        address = [x for x in lines if 'rip=' in x][0][len('rip='):len('rip=')+16]
+      registers = {}
+      for line in lines:
+        if 'ip=' in line or 'ax=' in line:
+          registers_tmp = [reg for reg in line.split(' ') if reg.find('=') == 3]
+          for reg in registers_tmp:
+            reg_parts = reg.split('=')
+            reg_name = reg_parts[0]
+            reg_value = reg_parts[1]
+            registers[reg_name] = reg_value
+      if 'eip' in registers:
+        address = registers['eip']
+      elif 'rip' in registers:
+        address = registers['rip']
+      else:
+        raise 'instruction pointer address not found in crash log'
       instruction_line = [x for x in lines if x.startswith(address)][0]
       address_lines[address] = instruction_line
       if address in addresses:
