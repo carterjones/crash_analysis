@@ -9,6 +9,20 @@ Outputs a list of addresses, along with log files that correspond to that
 crash address.
 '''
 
+class CrashInfo:
+  '''Information about a crash, obtained from the output of windbg'''
+  def __init__(self):
+    self.registers = {}
+    self.stack_trace = []
+
+  def crash_address(self):
+    if 'eip' in self.registers:
+      return self.registers['eip']
+    elif 'rip' in self.registers:
+      return self.registers['rip']
+    else:
+      raise 'No instruction pointer was found.'
+
 def usage(script_name):
   print 'usage: ' + script_name + ' <crash_log_directory>'
 
@@ -32,9 +46,9 @@ if __name__ == '__main__':
       # Prepare to work with data.
       data = crash_file.read()
       lines = data.split('\n')
+      ci = CrashInfo()
 
       # Get registers.
-      registers = {}
       for line in lines:
         if 'ip=' in line or 'ax=' in line:
           registers_tmp = [reg for reg in line.split(' ') if reg.find('=') == 3]
@@ -42,16 +56,10 @@ if __name__ == '__main__':
             reg_parts = reg.split('=')
             reg_name = reg_parts[0]
             reg_value = reg_parts[1]
-            registers[reg_name] = reg_value
+            ci.registers[reg_name] = reg_value
 
       # Set address of crash.
-      address = None
-      if 'eip' in registers:
-        address = registers['eip']
-      elif 'rip' in registers:
-        address = registers['rip']
-      else:
-        raise 'instruction pointer address not found in crash log'
+      address = ci.crash_address()
 
       # Get the instruction that caused the crash.
       instruction_line = [x for x in lines if x.startswith(address)][0]
@@ -60,7 +68,7 @@ if __name__ == '__main__':
       # Get the stack trace.
       r = re.compile('Stack Trace:.*?\n\n', re.MULTILINE|re.DOTALL)
       m = r.search(data)
-      stack_trace = m.group()[len('Stack Trace:\n'):-2].split('\n')[:-1]
+      ci.stack_trace = m.group()[len('Stack Trace:\n'):-2].split('\n')[:-1]
 
       # Associate the file with the crash address.
       if address in addresses:
