@@ -14,6 +14,7 @@ class CrashInfo:
   def __init__(self):
     self.registers = {}
     self.stack_trace = []
+    self.filename = ''
 
   def crash_address(self):
     if 'eip' in self.registers:
@@ -47,6 +48,7 @@ if __name__ == '__main__':
       data = crash_file.read()
       lines = data.split('\n')
       ci = CrashInfo()
+      ci.filename = filename
 
       # Get registers.
       for line in lines:
