@@ -1,5 +1,6 @@
 import operator
 import os
+import re
 import sys
 
 '''
@@ -55,6 +56,11 @@ if __name__ == '__main__':
       # Get the instruction that caused the crash.
       instruction_line = [x for x in lines if x.startswith(address)][0]
       address_lines[address] = instruction_line
+
+      # Get the stack trace.
+      r = re.compile('Stack Trace:.*?\n\n', re.MULTILINE|re.DOTALL)
+      m = r.search(data)
+      stack_trace = m.group()[len('Stack Trace:\n'):-2].split('\n')[:-1]
 
       # Associate the file with the crash address.
       if address in addresses:
