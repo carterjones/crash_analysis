@@ -42,7 +42,7 @@ class CrashInfo:
   def __init__(self):
     self.registers = {}
     self.stack_trace = []
-    self.filename = ''
+    self.filepath = ''
 
   def crash_address(self):
     if 'eip' in self.registers:
@@ -50,7 +50,7 @@ class CrashInfo:
     elif 'rip' in self.registers:
       return self.registers['rip']
     else:
-      raise 'No instruction pointer was found.'
+      raise Exception('No instruction pointer was found. Crash file: ' + self.filepath)
 
   def score():
     pass
@@ -79,7 +79,7 @@ if __name__ == '__main__':
       data = crash_file.read()
       lines = data.split('\n')
       ci = CrashInfo()
-      ci.filename = filename
+      ci.filepath = crash_dir + os.sep + filename
 
       # Get registers.
       for line in lines:
