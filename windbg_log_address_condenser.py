@@ -1,3 +1,4 @@
+import math
 import operator
 import os
 import re
@@ -21,6 +22,17 @@ def get_cyclic_rating(value):
     return 0
   if len(value) == 8 or len(value) == 16:
     weight = 0
+    # Count the number of occurances of each byte in the value.
+    pairs = [value[0:2], value[2:4], value[4:6], value[6:8]]
+    if len(value) == 16:
+      pairs = pairs + [value[8:10], value[10:12], value[12:14], value[14:16]]
+    pairs = [p for p in pairs if '00' not in p]
+    pairs_unique = list(set(pairs))
+    for pair in pairs_unique:
+      num_occurrances = value.count(pair)
+      if num_occurrances > 1:
+        weight += int(math.pow(2, num_occurrances))
+    return int(weight/2)
     '''
     # Look for repeated single characters.
     for x in value:
