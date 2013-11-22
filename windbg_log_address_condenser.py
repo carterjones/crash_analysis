@@ -26,10 +26,13 @@ if __name__ == '__main__':
   addresses = {}
   address_lines = {}
   for filename in os.listdir(crash_dir):
+    # Analyze each file.
     with open(crash_dir + os.sep + filename, 'r') as crash_file:
+      # Prepare to work with data.
       data = crash_file.read()
       lines = data.split('\n')
-      address = None
+
+      # Get registers.
       registers = {}
       for line in lines:
         if 'ip=' in line or 'ax=' in line:
@@ -39,14 +42,21 @@ if __name__ == '__main__':
             reg_name = reg_parts[0]
             reg_value = reg_parts[1]
             registers[reg_name] = reg_value
+
+      # Set address of crash.
+      address = None
       if 'eip' in registers:
         address = registers['eip']
       elif 'rip' in registers:
         address = registers['rip']
       else:
         raise 'instruction pointer address not found in crash log'
+
+      # Get the instruction that caused the crash.
       instruction_line = [x for x in lines if x.startswith(address)][0]
       address_lines[address] = instruction_line
+
+      # Associate the file with the crash address.
       if address in addresses:
         addresses[address] = addresses[address] + [crash_dir + os.sep + filename]
       else:
