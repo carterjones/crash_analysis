@@ -50,6 +50,32 @@ class CrashInfo:
   def __str__(self):
     return '(' + str(self.score()) + ') ' + self.filepath
 
+  def populate_info(self, crash_log_filepath):
+    self.filepath = crash_log_filepath
+    with open(self.filepath, 'r') as crash_file:
+      # Prepare to work with data.
+      data = crash_file.read()
+      lines = data.split('\n')
+
+      # Get registers.
+      for line in lines:
+        if 'ip=' in line or 'ax=' in line:
+          registers_tmp = [reg for reg in line.split(' ') if reg.find('=') == 3]
+          for reg in registers_tmp:
+            reg_parts = reg.split('=')
+            reg_name = reg_parts[0]
+            reg_value = reg_parts[1]
+            self.registers[reg_name] = reg_value
+
+      # Get the instruction that caused the crash.
+      instruction_line = [x for x in lines if x.startswith(self.crash_address())][0]
+      self.crash_instruction_line = instruction_line
+
+      # Get the stack trace.
+      r = re.compile('Stack Trace:.*?\n\n', re.MULTILINE|re.DOTALL)
+      m = r.search(data)
+      self.stack_trace = m.group()[len('Stack Trace:\n'):-2].split('\n')[:-1]
+
   def crash_address(self):
     if 'eip' in self.registers:
       return self.registers['eip']
@@ -130,35 +156,9 @@ if __name__ == '__main__':
 
   crashes = []
   for filename in os.listdir(crash_dir):
-    # Analyze each file.
-    with open(crash_dir + os.sep + filename, 'r') as crash_file:
-      # Prepare to work with data.
-      data = crash_file.read()
-      lines = data.split('\n')
-      ci = CrashInfo()
-      ci.filepath = crash_dir + os.sep + filename
-
-      # Get registers.
-      for line in lines:
-        if 'ip=' in line or 'ax=' in line:
-          registers_tmp = [reg for reg in line.split(' ') if reg.find('=') == 3]
-          for reg in registers_tmp:
-            reg_parts = reg.split('=')
-            reg_name = reg_parts[0]
-            reg_value = reg_parts[1]
-            ci.registers[reg_name] = reg_value
-
-      # Get the instruction that caused the crash.
-      instruction_line = [x for x in lines if x.startswith(ci.crash_address())][0]
-      ci.crash_instruction_line = instruction_line
-
-      # Get the stack trace.
-      r = re.compile('Stack Trace:.*?\n\n', re.MULTILINE|re.DOTALL)
-      m = r.search(data)
-      ci.stack_trace = m.group()[len('Stack Trace:\n'):-2].split('\n')[:-1]
-
-      # Add the crash to the list of crashes.
-      crashes.append(ci)
+    ci = CrashInfo()
+    ci.populate_info(crash_dir + os.sep + filename)
+    crashes.append(ci)
 
   print_crashes_sorted_by_crash_address(crashes)
   #print_crashes_sorted_by_score(crashes)
