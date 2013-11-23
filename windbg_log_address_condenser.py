@@ -148,11 +148,8 @@ if __name__ == '__main__':
             reg_value = reg_parts[1]
             ci.registers[reg_name] = reg_value
 
-      # Set address of crash.
-      address = ci.crash_address()
-
       # Get the instruction that caused the crash.
-      instruction_line = [x for x in lines if x.startswith(address)][0]
+      instruction_line = [x for x in lines if x.startswith(ci.crash_address())][0]
       ci.crash_instruction_line = instruction_line
 
       # Get the stack trace.
