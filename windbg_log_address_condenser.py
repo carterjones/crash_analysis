@@ -43,6 +43,12 @@ class CrashInfo:
     self.registers = {}
     self.stack_trace = []
     self.filepath = ''
+    self.offset_considered_abnomrally_large = 65536
+    self.possible_stack_corruption = False
+    self.crash_instruction_line = ''
+
+  def __str__(self):
+    return '(' + str(self.score()) + ') ' + self.filepath
 
   def crash_address(self):
     if 'eip' in self.registers:
@@ -52,8 +58,42 @@ class CrashInfo:
     else:
       raise Exception('No instruction pointer was found. Crash file: ' + self.filepath)
 
-  def score():
-    pass
+  def check_for_stack_corruption(self):
+    # Perform scoring based on the stack trace.
+    if self.stack_trace:
+      top_call = self.stack_trace[0]
+
+      # If the top of the stack could not be resolved, it could imply a stack
+      # corruption, which could be interesting.
+      if top_call is 'Unknown':
+        self.possible_stack_corruption = True
+
+      # If the top of the stack has a very large offset, it could indicate
+      # that a coincidentally valid address was called, due to overwriting EIP,
+      # which could be interesting.
+      elif '+0x' in top_call:
+        # Get the offset value.
+        offset = int(re.search('\+0x.*', top_call).group()[1:], 16)
+        if offset >= self.offset_considered_abnomrally_large:
+          self.possible_stack_corruption = True
+
+    # Return true if a possible stack corruption has been encountered.
+    return self.possible_stack_corruption
+
+  def score(self):
+    score = 0
+
+    # Rate the byte repetition within the registers. Higher repetition
+    # indicates possibly more interesting results.
+    for reg in self.registers:
+      score += get_byte_repetition_rating(self.registers[reg])
+
+    # Check for a stack coruption.
+    self.check_for_stack_corruption()
+    if self.possible_stack_corruption:
+      score += 3
+
+    return score
 
 def usage(script_name):
   print 'usage: ' + script_name + ' <crash_log_directory>'
