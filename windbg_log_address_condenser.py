@@ -95,6 +95,24 @@ class CrashInfo:
 
     return score
 
+def print_crashes_sorted_by_crash_address(crashes):
+  crash_groups = {}
+  for ci in crashes:
+    crash_address = ci.crash_address()
+    if crash_address in crash_groups:
+      crash_groups[crash_address] = crash_groups[crash_address] + [ci]
+    else:
+      crash_groups[crash_address] = [ci]
+  for address in sorted(crash_groups, key=lambda k: len(crash_groups[k]), reverse=True):
+    print crash_groups[address][0].crash_instruction_line + ':'
+    for ci in crash_groups[address]:
+      print '  ' + ci.filepath
+
+def print_crashes_sorted_by_score(crashes):
+  crashes.sort(key=operator.methodcaller('score'), reverse=True)
+  for ci in crashes:
+    print ci
+
 def usage(script_name):
   print 'usage: ' + script_name + ' <crash_log_directory>'
 
@@ -110,8 +128,7 @@ if __name__ == '__main__':
     print crash_dir + ' is not a valid directory'
     exit(1)
 
-  addresses = {}
-  address_lines = {}
+  crashes = []
   for filename in os.listdir(crash_dir):
     # Analyze each file.
     with open(crash_dir + os.sep + filename, 'r') as crash_file:
@@ -136,22 +153,15 @@ if __name__ == '__main__':
 
       # Get the instruction that caused the crash.
       instruction_line = [x for x in lines if x.startswith(address)][0]
-      address_lines[address] = instruction_line
+      ci.crash_instruction_line = instruction_line
 
       # Get the stack trace.
       r = re.compile('Stack Trace:.*?\n\n', re.MULTILINE|re.DOTALL)
       m = r.search(data)
       ci.stack_trace = m.group()[len('Stack Trace:\n'):-2].split('\n')[:-1]
 
-      # Associate the file with the crash address.
-      if address in addresses:
-        addresses[address] = addresses[address] + [crash_dir + os.sep + filename]
-      else:
-        addresses[address] = [crash_dir + os.sep + filename]
+      # Add the crash to the list of crashes.
+      crashes.append(ci)
 
-  addresses_count = map(lambda x: (x, len(addresses[x]), addresses[x]), addresses)
-  sorted_addresses = sorted(addresses_count, key=lambda x: x[1], reverse=True)
-  for address,count,files in sorted_addresses:
-    print address_lines[address] + ':'
-    for f in files:
-      print '  ' + f
+  print_crashes_sorted_by_crash_address(crashes)
+  #print_crashes_sorted_by_score(crashes)
