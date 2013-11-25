@@ -1,3 +1,4 @@
+import glob
 import math
 import operator
 import os
@@ -155,9 +156,9 @@ if __name__ == '__main__':
     exit(1)
 
   crashes = []
-  for filename in os.listdir(crash_dir):
+  for filepath in glob.glob(crash_dir + os.sep + '*.log'):
     ci = CrashInfo()
-    ci.populate_info(crash_dir + os.sep + filename)
+    ci.populate_info(filepath)
     crashes.append(ci)
 
   print_crashes_sorted_by_crash_address(crashes)
