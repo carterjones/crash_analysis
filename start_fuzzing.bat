@@ -1,7 +1,6 @@
 @echo off
 set username=admin
 set password=1
-@echo on
 
 psexec \\192.168.91.128 -u %username% -p %password% net share shared="C:\Documents and Settings\admin\Desktop\fuzzing_tools"
 net use z: \\192.168.91.128\shared /user:%username% %password%
