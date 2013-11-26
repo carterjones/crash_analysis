@@ -1,1 +1,1 @@
-A collection of crash analysis tools and scripts.
+A collection of fuzzing-related tools and scripts.
