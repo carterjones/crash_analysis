@@ -1,0 +1,1 @@
+ProcessClose ( "MiniFuzz.exe" )
