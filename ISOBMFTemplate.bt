@@ -1,0 +1,353 @@
+//--------------------------------------
+//--- 010 Editor v4.0.3 Binary Template
+//
+// File: ISOBMFTemplate.bt
+// Author: @RReverser
+// Revision: 201302261710
+// Purpose: Parse ISO Base Media File Format files (QuickTime, JPEG2000, MPEG-4, etc.)
+//--------------------------------------
+
+BigEndian();
+
+typedef struct compressor_name_array_32
+{
+    string compressorname_01 <name = "Compressor name 01">;
+    string compressorname_02 <name = "Compressor name 02">;
+    string compressorname_03 <name = "Compressor name 03">;
+    string compressorname_04 <name = "Compressor name 04">;
+    string compressorname_05 <name = "Compressor name 05">;
+    string compressorname_06 <name = "Compressor name 06">;
+    string compressorname_07 <name = "Compressor name 07">;
+    string compressorname_08 <name = "Compressor name 08">;
+    string compressorname_09 <name = "Compressor name 09">;
+    string compressorname_10 <name = "Compressor name 10">;
+    string compressorname_11 <name = "Compressor name 11">;
+    string compressorname_12 <name = "Compressor name 12">;
+    string compressorname_13 <name = "Compressor name 13">;
+    string compressorname_14 <name = "Compressor name 14">;
+    string compressorname_15 <name = "Compressor name 15">;
+    string compressorname_16 <name = "Compressor name 16">;
+    string compressorname_17 <name = "Compressor name 17">;
+    string compressorname_18 <name = "Compressor name 18">;
+    string compressorname_19 <name = "Compressor name 19">;
+    string compressorname_20 <name = "Compressor name 20">;
+    string compressorname_21 <name = "Compressor name 21">;
+    string compressorname_22 <name = "Compressor name 22">;
+    string compressorname_23 <name = "Compressor name 23">;
+    string compressorname_24 <name = "Compressor name 24">;
+    string compressorname_25 <name = "Compressor name 25">;
+    string compressorname_26 <name = "Compressor name 26">;
+    string compressorname_27 <name = "Compressor name 27">;
+    string compressorname_28 <name = "Compressor name 28">;
+    string compressorname_29 <name = "Compressor name 29">;
+    string compressorname_30 <name = "Compressor name 30">;
+    string compressorname_31 <name = "Compressor name 31">;
+    string compressorname_32 <name = "Compressor name 32">;
+};
+
+typedef struct
+{
+    uint32 size <name = "Size", hidden = false>;
+    char type[4] <name = "Type", hidden = false>;
+    switch (type)
+    {
+        case "ftyp":
+            uint32 major_brand <name = "Major Brand">;
+            uint32 minor_version <name = "Minor Version">;
+            local uint n = (size - 16) / 4; // size minus the prevous 4 variables, divided by the size of a uint32
+            uint32 compatible_brands[n] <name = "Compatible Brands">;
+            break;
+
+        case "avc1":
+            // SampleEntry (extends Box)
+            byte reserved_1[6] <hidden = true>;
+            uint16 data_reference_index <name = "Data reference index">;
+            // VisualSampleEntry (extends SampleEntry)
+            uint16 pre_defined_1 <hidden = true>;
+            uint16 reserved_2 <hidden = true>;
+            uint32 pre_defined_2[3] <hidden = true>;
+            uint16 width <name = "Width">;
+            uint16 height <name = "Height">;
+            uint32 horizresolution <name = "Horizontal resolution", format = hex>;
+            uint32 vertresolution <name = "Vertical resolution", format = hex>;
+            uint32 reserved_3 <hidden = true>;
+            uint16 frame_count <name = "Frame count">;
+            compressor_name_array_32 compressor_name <name = "Compressor name">;
+            uint16 depth <name = "Depth">;
+            uint16 pre_defined_3 <hidden = true>;
+            // actual avc1 definition
+            while (FTell() - startof(this) < size)
+            {
+                struct Atom child;
+            }
+            break;
+
+        case "avcC":
+            // AVCDecoderConfigurationRecord
+            byte configurationVersion <name = "Configuration version">;
+            byte AVCProfileIndication <name = "AVC profile indication">;
+            byte profile_compatibility <name = "Profile compatibility">;
+            byte AVCLevelIndication <name = "AVC level indication">;
+            BitfieldDisablePadding();
+            byte reserved_1 : 6 <format = binary>;// <hidden = true>;
+            byte lengthSizeMinusOne : 2 <name = "Length size - 1", format = binary>;
+            byte reserved_2 : 3 <format = binary>;// <hidden = true>;
+            byte numOfSequenceParameterSets : 5 <name = "Number of sequence parameter sets">;
+            BitfieldEnablePadding();
+            /*
+            // Real method, but broken
+            local int i;
+            for (i = 0; i < numOfSequenceParameterSets; i++)
+            {
+                uint16 sequenceParameterSetLength <name = "Sequence parameter set length">;
+                local int sequenceParameterSetLengthTimes8 = sequenceParameterSetLength * 8;
+                int sequenceParameterSetNALUnit : sequenceParameterSetLengthTimes8;
+            }
+            byte numOfPictureParameterSets;
+            for (i=0; i< numOfPictureParameterSets; i++)
+            {
+                uint16 pictureParameterSetLength <name = "Picture parameter set length">;
+                local int pictureParameterSetLengthTimes8 = pictureParameterSetLength * 8;
+                int pictureParameterSetNALUnit : pictureParameterSetLengthTimes8;
+            }
+            */
+            // hack
+            uint16 sequenceParameterSetLength <name = "Sequence parameter set length">;
+            byte sequenceParameterSetNALUnit[sequenceParameterSetLength];
+            byte numOfPictureParameterSets <name = "Number of picture parameter sets">;
+            uint16 pictureParameterSetLength <name = "Picture parameter set length">;
+            byte pictureParameterSetNALUnit[ pictureParameterSetLength];
+            break;
+
+        case "co64":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 n <hidden = true>;
+            uint64 entries[n] <name = "Chunk offsets">;
+            break;
+
+        case "ctts":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 n <hidden = true>;
+            struct {
+                uint32 sampleCount <name = "Sample count">;
+                uint32 offset <name = "Offset">;
+            } entries[n] <name = "Chunk offsets">;
+            break;
+
+        case "dref":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 entry_count <name = "Entry count">;
+            while (FTell() - startof(this) < size)
+            {
+                struct Atom child;
+            }
+            break;
+
+        case "elst":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 n <hidden = true>;
+            struct {
+                uint32 duration <name = "Duration", comment = "In global timescale units">;
+                uint32 mediaTime <name = "Media time", comment = "In trak timescale units">;
+                uint32 playbackSpeed <name = "Playback speed">;
+            } entries[n] <name = "Edit list entries">;
+            break;
+
+        case "fiel":
+            ubyte fields <name = "Scan mode", comment = "1 for progressive scan, 2 for 2:1 interlaced">;
+            ubyte detail <name = "Detail", comment = "https://developer.apple.com/quicktime/icefloe/dispatch019.html#fiel">;
+            break;
+
+        case "hdlr":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            char component_type[4] <name = "Component type">;
+            char subtype[4] <name = "Component subtype">;
+            uint32 manufacturer <name = "Component manufacturer">;
+            uint32 flags <name = "Component flags">;
+            uint32 flags_mask <name = "Component flags mask">;
+            string name <name = "Component name">;
+            break;            
+
+        case "mdhd":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            if (version < 1)
+            {
+                uint32 creation_time <name = "Creation time">;
+                uint32 modification_time <name = "Modification time">;
+            }
+            else
+            {
+                uint64 creation_time <name = "Creation time">;
+                uint64 modification_time <name = "Modification time">;
+            }
+            uint32 time_scale <name = "Time scale">;
+            if (version < 1)
+            {
+                uint32 duration <name = "Duration">;
+            }
+            else
+            {
+                uint64 duration <name = "Duration">;
+            }
+            uint16 lang <name = "Language", format = binary, comment = "ISO-639 language code represented with three 5-bit values (each of which is the ASCII value of the letter minus 0x60)">;
+            uint16 quality <name = "Quality">;
+            break;
+
+        case "mvhd":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            if (version == 1)
+            {
+                uint64 creation_time <name = "Creation time">;
+                uint64 modification_time <name = "Modification time">;
+                uint32 timescale <name = "Timescale">;
+                uint64 duration <name = "Duration">;
+            }
+            else
+            {
+                uint32 creation_time <name = "Creation time">;
+                uint32 modification_time <name = "Modification time">;
+                uint32 timescale <name = "Timescale">;
+                uint32 duration <name = "Duration">;
+            }
+            uint32 rate <name = "Rate", format = hex>;
+            uint16 volume <name = "Volume", format = hex>;
+            uint16 reserved_1 <hidden = true>;
+            uint32 reserved_2[2] <hidden = true>;
+            uint32 matrix[9] <name = "Matrix", format = hex>;
+            uint32 pre_defined[6] <hidden = true>;
+            uint32 next_track_ID <name = "Next track ID">;
+            break;
+
+        case "stco":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 n <hidden = true>;
+            uint32 entries[n] <name = "Chunk offsets">;
+            break;
+
+        case "stsd":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 entry_count <name = "Entry count">;
+            while (FTell() - startof(this) < size)
+            {
+                struct Atom child;
+            }
+            break;
+
+        case "stss":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 n <hidden = true>;
+            uint32 entries[n] <name = "Sync samples">;
+            break;
+
+        case "stsz":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint32 uniform_size <name = "Uniform size">;
+            uint32 n <hidden = true>;
+            uint32 entries[n] <name = "Sample sizes">;
+            break;
+
+        case "tkhd":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            if (version == 1)
+            {
+                uint64 creation_time <name = "Creation time">;
+                uint64 modification_time <name = "Modification time">;
+                uint32 track_ID <name = "Track ID">;
+                uint32 reserved_1 <hidden = true>;
+                uint64 duration <name = "Duration">;
+            }
+            else
+            {
+                uint32 creation_time <name = "Creation time">;
+                uint32 modification_time <name = "Modification time">;
+                uint32 track_ID <name = "Track ID">;
+                uint32 reserved_1 <hidden = true>;
+                uint32 duration <name = "Duration">;
+            }
+            uint32 reserved_2[2] <hidden = true>;
+            uint16 layer <name = "Layer">;
+            uint16 alternate_group <name = "Alternate group">;
+            uint16 volume <name = "Volume", format = hex>;
+            uint32 matrix[9] <name = "Matrix", format = hex>;
+            uint32 width <name = "Width">;
+            uint32 height <name = "Height">;
+            break;
+
+        case "url ":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            string location <name = "Location">;
+            break;
+
+        case "urn ":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            string name <name = "Name">;
+            string location <name = "Location">;
+            break;
+
+        case "vmhd":
+            ubyte version <name = "Version">;
+            ubyte flags[3] <name = "Flags", format = binary>;
+            uint16 graphicsmode <name = "Graphics mode">;
+            uint16 opcolor[3] <name = "OP Color (RGB)">;
+            break;
+
+        // Container Boxes
+        case "cmov":
+        case "dinf":
+        case "edts":
+        case "mdia":
+        case "minf":
+        case "moov":
+        case "rmda":
+        case "rmra":
+        case "stbl":
+        case "trak":
+            while (FTell() - startof(this) < size)
+            {
+                struct Atom child;
+            }
+            break;
+
+        default:
+            FSeek(FTell() - 8);
+            break;
+    }
+
+    local int left = size - (FTell() - startof(this));
+    if (left > 0)
+    {
+        ubyte data[left] <format = hex>;
+    }
+}
+Atom <name = GetAtomName, size = GetAtomSize>;
+
+int GetAtomSize(Atom &atom)
+{
+    return ReadUInt(startof(atom));
+}
+
+string GetAtomName(Atom &atom)
+{
+    char type[4];
+    ReadBytes(type, startof(atom) + 4, 4);
+    return type;
+}
+
+while (!FEof())
+{
+    Atom atom;
+}
