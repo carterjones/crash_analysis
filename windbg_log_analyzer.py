@@ -45,8 +45,12 @@ class CrashInfo:
     self.stack_trace = []
     self.filepath = ''
     self.offset_considered_abnomrally_large = 65536
+    self.difference_between_bp_and_sp_considered_abnomrally_large = 65536
+    self.bp_or_sp_considered_abnormally_large = 0xDFFFFFFF
+    self.bp_or_sp_considered_abnormally_small = 0x000FFFFF
     self.possible_stack_corruption = False
     self.crash_instruction_line = ''
+    self.bitness = 0
 
   def __str__(self):
     return '(' + str(self.score()) + ') ' + self.filepath
@@ -67,6 +71,12 @@ class CrashInfo:
             reg_name = reg_parts[0]
             reg_value = reg_parts[1]
             self.registers[reg_name] = reg_value
+
+      # Set bitness.
+      if 'eip' in self.registers:
+        self.bitness = 32
+      elif 'rip' in self.registers:
+        self.bitness = 64
 
       # Get the instruction that caused the crash.
       instruction_line = [x for x in lines if x.startswith(self.crash_address())][0]
@@ -107,6 +117,16 @@ class CrashInfo:
     # Return true if a possible stack corruption has been encountered.
     return self.possible_stack_corruption
 
+  def get_base_pointer_value(self):
+    if self.bitness == 0:
+      return None
+    return self.registers["ebp"] if self.bitness == 32 else self.registers["rbp"]
+
+  def get_stack_pointer_value(self):
+    if self.bitness == 0:
+      return None
+    return self.registers["esp"] if self.bitness == 32 else self.registers["rsp"]
+
   def score(self):
     score = 0
 
@@ -119,6 +139,21 @@ class CrashInfo:
     self.check_for_stack_corruption()
     if self.possible_stack_corruption:
       score += 3
+
+    # Analyze stack and base pointers, looking for abnormal values.
+    bp_value = int(self.get_base_pointer_value(), 16)
+    sp_value = int(self.get_stack_pointer_value(), 16)
+    difference_between_bp_and_sp = abs(bp_value - sp_value)
+    if difference_between_bp_and_sp >= self.difference_between_bp_and_sp_considered_abnomrally_large:
+      score += 4
+    if bp_value >= self.bp_or_sp_considered_abnormally_large:
+      score += 2
+    if sp_value >= self.bp_or_sp_considered_abnormally_large:
+      score += 2
+    if bp_value <= self.bp_or_sp_considered_abnormally_small:
+      score += 2
+    if sp_value <= self.bp_or_sp_considered_abnormally_small:
+      score += 2
 
     return score
 
