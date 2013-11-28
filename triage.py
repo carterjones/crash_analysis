@@ -12,6 +12,7 @@ according to exception type. All exceptions that occur have a log generated
 and saved to disk.
 '''
 
+delete_crashes_that_do_not_cause_an_exception = True
 cdb_path = 'c:\\Program Files\\Debugging Tools for Windows (x86)\\cdb.exe'
 continue_killing_target_program = False
 
@@ -80,9 +81,12 @@ if __name__ == '__main__':
       print exploitability
     else:
       continue
-    if not os.path.isdir(exploitability):
-      os.makedirs(exploitability)
-    shutil.move(path_to_files + '\\' + filename, exploitability + '\\' + filename)
-    if exploitability in ['EXPLOITABLE', 'PROBABLY_EXPLOITABLE', 'PROBABLY_NOT_EXPLOITABLE', 'UNKNOWN']:
+    if exploitability != 'NOT_AN_EXCEPTION':
+      if not os.path.isdir(exploitability):
+        os.makedirs(exploitability)
+      shutil.move(path_to_files + '\\' + filename, exploitability + '\\' + filename)
       with open(exploitability + '\\' + filename + '.log', 'w') as windbg_out:
         windbg_out.write(output)
+    else:
+      if delete_crashes_that_do_not_cause_an_exception:
+        os.remove(path_to_files + '\\' + filename)
