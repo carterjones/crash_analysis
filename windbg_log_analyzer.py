@@ -45,10 +45,10 @@ class CrashInfo:
     self.registers = {}
     self.stack_trace = []
     self.filepath = ''
-    self.offset_considered_abnomrally_large = 65536
-    self.difference_between_bp_and_sp_considered_abnomrally_large = 65536
-    self.bp_or_sp_considered_abnormally_large = 0xDFFFFFFF
-    self.bp_or_sp_considered_abnormally_small = 0x000FFFFF
+    self.large_offset = 65536
+    self.large_diff_between_bp_and_sp = 65536
+    self.large_bp_or_sp = 0xDFFFFFFF
+    self.small_bp_or_sp = 0x000FFFFF
     self.possible_stack_corruption = False
     self.crash_instruction_line = ''
     self.bitness = 0
@@ -66,9 +66,9 @@ class CrashInfo:
       # Get registers.
       for line in lines:
         if 'ip=' in line or 'ax=' in line:
-          registers_tmp = [reg for reg in line.split(' ') if reg.find('=') == 3]
-          for reg in registers_tmp:
-            reg_parts = reg.split('=')
+          registers_tmp = [r for r in line.split(' ') if r.find('=') == 3]
+          for r in registers_tmp:
+            reg_parts = r.split('=')
             reg_name = reg_parts[0]
             reg_value = reg_parts[1]
             self.registers[reg_name] = reg_value
@@ -80,7 +80,8 @@ class CrashInfo:
         self.bitness = 64
 
       # Get the instruction that caused the crash.
-      instruction_line = [x for x in lines if x.startswith(self.crash_address())][0]
+      crash_address = self.crash_address()
+      instruction_line = [x for x in lines if x.startswith(crash_address)][0]
       self.crash_instruction_line = instruction_line
 
       # Get the stack trace.
@@ -94,7 +95,8 @@ class CrashInfo:
     elif 'rip' in self.registers:
       return self.registers['rip']
     else:
-      raise Exception('No instruction pointer was found. Crash file: ' + self.filepath)
+      raise Exception('No instruction pointer was found. Crash file: ' +
+                      self.filepath)
 
   def check_for_stack_corruption(self):
     # Perform scoring based on the stack trace.
@@ -107,26 +109,32 @@ class CrashInfo:
         self.possible_stack_corruption = True
 
       # If the top of the stack has a very large offset, it could indicate
-      # that a coincidentally valid address was called, due to overwriting EIP,
-      # which could be interesting.
+      # that a coincidentally valid address was called, due to overwriting
+      # EIP, which could be interesting.
       elif '+0x' in top_call:
         # Get the offset value.
         offset = int(re.search('\+0x.*', top_call).group()[1:], 16)
-        if offset >= self.offset_considered_abnomrally_large:
+        if offset >= self.large_offset:
           self.possible_stack_corruption = True
 
     # Return true if a possible stack corruption has been encountered.
     return self.possible_stack_corruption
 
   def get_base_pointer_value(self):
-    if self.bitness == 0:
+    if self.bitness == 32:
+      return self.registers["ebp"]
+    elif self.bitness = 64:
+      return self.registers["rbp"]
+    else:
       return None
-    return self.registers["ebp"] if self.bitness == 32 else self.registers["rbp"]
 
   def get_stack_pointer_value(self):
-    if self.bitness == 0:
+    if self.bitness == 32:
+      return self.registers["esp"]
+    elif self.bitness = 64:
+      return self.registers["rsp"]
+    else:
       return None
-    return self.registers["esp"] if self.bitness == 32 else self.registers["rsp"]
 
   def score(self):
     score = 0
@@ -144,16 +152,16 @@ class CrashInfo:
     # Analyze stack and base pointers, looking for abnormal values.
     bp_value = int(self.get_base_pointer_value(), 16)
     sp_value = int(self.get_stack_pointer_value(), 16)
-    difference_between_bp_and_sp = abs(bp_value - sp_value)
-    if difference_between_bp_and_sp >= self.difference_between_bp_and_sp_considered_abnomrally_large:
+    diff_between_bp_and_sp = abs(bp_value - sp_value)
+    if diff_between_bp_and_sp >= self.large_diff_between_bp_and_sp:
       score += 4
-    if bp_value >= self.bp_or_sp_considered_abnormally_large:
+    if bp_value >= self.large_bp_or_sp:
       score += 2
-    if sp_value >= self.bp_or_sp_considered_abnormally_large:
+    if sp_value >= self.large_bp_or_sp:
       score += 2
-    if bp_value <= self.bp_or_sp_considered_abnormally_small:
+    if bp_value <= self.small_bp_or_sp:
       score += 2
-    if sp_value <= self.bp_or_sp_considered_abnormally_small:
+    if sp_value <= self.small_bp_or_sp:
       score += 2
 
     return score
@@ -166,7 +174,10 @@ def print_crashes_sorted_by_crash_address(crashes):
       crash_groups[crash_address] = crash_groups[crash_address] + [ci]
     else:
       crash_groups[crash_address] = [ci]
-  for address in sorted(crash_groups, key=lambda k: len(crash_groups[k]), reverse=True):
+  sorted_crash_groups = sorted(crash_groups,
+                               key=lambda k: len(crash_groups[k]),
+                               reverse=True)
+  for address in sorted_crash_groups:
     print crash_groups[address][0].crash_instruction_line + ':'
     for ci in crash_groups[address]:
       print '  ' + ci.filepath
@@ -178,9 +189,16 @@ def print_crashes_sorted_by_score(crashes):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument("-i", "--instructions", help="group crash logs by the crash instruction", action="store_true")
-  parser.add_argument("-s", "--score", help="sort crash logs by their score", action="store_true")
-  parser.add_argument("crash_log_directory", help="the directory containing crash logs")
+  parser.add_argument("-i",
+                      "--instructions",
+                      help="group crash logs by the crash instruction",
+                      action="store_true")
+  parser.add_argument("-s",
+                      "--score",
+                      help="sort crash logs by their score",
+                      action="store_true")
+  parser.add_argument("crash_log_directory",
+                      help="the directory containing crash logs")
   args = parser.parse_args()
 
   crash_dir = args.crash_log_directory
