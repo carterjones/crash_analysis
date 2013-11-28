@@ -1,3 +1,4 @@
+import argparse
 import glob
 import math
 import operator
@@ -175,17 +176,14 @@ def print_crashes_sorted_by_score(crashes):
   for ci in crashes:
     print ci
 
-def usage(script_name):
-  print 'usage: ' + script_name + ' <crash_log_directory>'
-
 if __name__ == '__main__':
-  # Verify that a parameter has been passed to the program.
-  script_name = sys.argv[0]
-  if len(sys.argv) != 2:
-    usage(script_name)
-    exit(1)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-i", "--instructions", help="group crash logs by the crash instruction", action="store_true")
+  parser.add_argument("-s", "--score", help="sort crash logs by their score", action="store_true")
+  parser.add_argument("crash_log_directory", help="the directory containing crash logs")
+  args = parser.parse_args()
 
-  crash_dir = sys.argv[1]
+  crash_dir = args.crash_log_directory
   if not os.path.isdir(crash_dir):
     print crash_dir + ' is not a valid directory'
     exit(1)
@@ -196,5 +194,8 @@ if __name__ == '__main__':
     ci.populate_info(filepath)
     crashes.append(ci)
 
-  print_crashes_sorted_by_crash_address(crashes)
-  #print_crashes_sorted_by_score(crashes)
+  if args.instructions:
+    print_crashes_sorted_by_crash_address(crashes)
+
+  if args.score:
+    print_crashes_sorted_by_score(crashes)
