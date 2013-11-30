@@ -12,16 +12,22 @@ While 1
    
    ; Continue fuzzing if large files are found
    If WinExists("[CLASS:#32770; TITLE:Error]") Then
-	  ControlClick("Error", "", "[CLASS:Button; INSTANCE:1]")
+     ControlClick("Error", "", "[CLASS:Button; INSTANCE:1]")
    EndIf
    
    ; Do not remove temporary fuzzed files
    If WinExists("[CLASS:#32770; TITLE:MiniFuzz]") Then
-	  ControlClick("MiniFuzz", "", "[CLASS:Button; INSTANCE:2]")
+     ControlClick("MiniFuzz", "", "[CLASS:Button; INSTANCE:2]")
    EndIf
    
    ; Exit if MiniFuzz has been closed
    If NOT WinExists("[CLASS:WindowsForms10.Window.8.app.0.378734a; TITLE:MiniFuzz]") Then
-	  Exit
+     Exit
+   EndIf
+   
+   ; Do not send a crash report
+   If WinExists("VLC crash reporting") Then
+     WinActivate("VLC crash reporting")
+     ControlClick("VLC crash reporting", "", "[Text:No]")
    EndIf
 Wend
