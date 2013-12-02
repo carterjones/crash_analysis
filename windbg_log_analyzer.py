@@ -123,7 +123,7 @@ class CrashInfo:
   def get_base_pointer_value(self):
     if self.bitness == 32:
       return self.registers["ebp"]
-    elif self.bitness = 64:
+    elif self.bitness == 64:
       return self.registers["rbp"]
     else:
       return None
@@ -131,7 +131,7 @@ class CrashInfo:
   def get_stack_pointer_value(self):
     if self.bitness == 32:
       return self.registers["esp"]
-    elif self.bitness = 64:
+    elif self.bitness == 64:
       return self.registers["rsp"]
     else:
       return None
