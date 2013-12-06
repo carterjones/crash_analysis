@@ -1,1 +1,1 @@
-stop_fuzzing.bat & run_triager.bat & start_fuzzing.bat
+node_controller.py --stop & node_controller.py --triage & node_controller.py --restart_machine & node_controller.py --start
