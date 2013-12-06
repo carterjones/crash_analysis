@@ -30,4 +30,10 @@ While 1
      WinActivate("VLC crash reporting")
      ControlClick("VLC crash reporting", "", "[Text:No]")
    EndIf
+
+   ; Close Visual C++ Runtime Library error window
+   If WinExists("Microsoft Visual C++ Runtime Library") Then
+     WinActivate("Microsoft Visual C++ Runtime Library")
+     ControlClick("Microsoft Visual C++ Runtime Library", "", "[Text:No]")
+   EndIf
 Wend
