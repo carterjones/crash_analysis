@@ -2,15 +2,30 @@
 {
     using CookComputing.XmlRpc;
 
-    public interface INodeService: IXmlRpcProxy
+    /// <summary>
+    /// The interface for the XML-RPC service that is run on each node.
+    /// </summary>
+    public interface INodeService : IXmlRpcProxy
     {
-        [XmlRpcMethod]
-        string execute_command(string command);
+        /// <summary>
+        /// Execute a command on the node.
+        /// </summary>
+        /// <param name="command">the command to be executed</param>
+        /// <returns>the output of the command that was run</returns>
+        [XmlRpcMethod("execute_command")]
+        string ExecuteCommand(string command);
 
-        [XmlRpcMethod]
-        void close();
+        /// <summary>
+        /// Closes the listening server on the node.
+        /// </summary>
+        [XmlRpcMethod("close")]
+        void Close();
 
-        [XmlRpcMethod]
-        bool ping();
+        /// <summary>
+        /// Tests to make sure the connection to the node is still alive.
+        /// </summary>
+        /// <returns>always returns true</returns>
+        [XmlRpcMethod("ping")]
+        bool Ping();
     }
 }
