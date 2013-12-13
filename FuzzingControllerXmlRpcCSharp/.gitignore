@@ -1,0 +1,7 @@
+*
+!*.gitignore
+!*.config
+!*.cs
+!*.csproj
+!*.sln
+!Properties
