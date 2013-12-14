@@ -19,7 +19,8 @@
         /// <summary>
         /// A list of IP addresses of fuzzing nodes.
         /// </summary>
-        private static string[] nodeAddresses = { "192.168.139.148" };
+        //private static string[] nodeAddresses = { "192.168.139.148" };
+        private static string[] nodeAddresses = { "192.168.139.134" };
 
         /// <summary>
         /// The entry point of the program.
@@ -66,12 +67,23 @@
                 {
                     svc.ReconnectNodes();
                 }
+                else if (userInput.Equals("software"))
+                {
+                    ListSoftware(svc);
+                }
+                else if (userInput.Equals("install"))
+                {
+                    InstallSoftware(svc);
+                }
                 else if (userInput.Equals("help"))
                 {
                     Console.WriteLine("available commands:");
+                    Console.WriteLine("  help      - display this help documentation");
                     Console.WriteLine("  nodes     - list the nodes that have successfully connected to this controller");
                     Console.WriteLine("  update    - updates the status of each of the nodes");
                     Console.WriteLine("  reconnect - reconnect any nodes that have been disconnected");
+                    Console.WriteLine("  software  - show which necessary software is or is not installed nodes that are not connected");
+                    Console.WriteLine("  install   - install necessary software to nodes that are not connected");
                 }
             }
         }
@@ -134,6 +146,32 @@
             foreach (Node node in svc.GetNodes())
             {
                 Console.WriteLine("  [" + node.Status.DescriptionAttr() + "]  | " + node.Address.ToString());
+            }
+        }
+
+        private static void ListSoftware(ControllerService svc)
+        {
+            foreach (Node node in svc.GetNodes())
+            {
+                if (!node.IsOnline())
+                {
+                    node.CheckInstallations();
+                    Console.WriteLine(node.Address.ToString() + ":");
+                    Console.WriteLine("  python:       " + node.PythonInstalled.DescriptionAttr());
+                    Console.WriteLine("  psutil:       " + node.PsutilInstalled.DescriptionAttr());
+                    Console.WriteLine("  windbg:       " + node.WindbgInstalled.DescriptionAttr());
+                    Console.WriteLine("  !exploitable: " + node.BangExploitableInstalled.DescriptionAttr());
+                    Console.WriteLine("  AutoIt:       " + node.AutoitInstalled.DescriptionAttr());
+                    Console.WriteLine();
+                }
+            }
+        }
+
+        private static void InstallSoftware(ControllerService svc)
+        {
+            foreach (Node node in svc.GetNodes())
+            {
+                node.InstallSoftware();
             }
         }
     }
