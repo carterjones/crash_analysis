@@ -16,24 +16,6 @@
     /// </summary>
     public class Node
     {
-        public class OutErr
-        {
-            public string Output { get; set; }
-            public string Error { get; set; }
-
-            public OutErr()
-            {
-                this.Output = string.Empty;
-                this.Error = string.Empty;
-            }
-
-            public OutErr(OutErr oe)
-            {
-                this.Output = oe.Output;
-                this.Error = oe.Error;
-            }
-        }
-
         /// <summary>
         /// The username for this node.
         /// </summary>
@@ -44,18 +26,15 @@
         /// </summary>
         private const string Password = "1";
 
+        /// <summary>
+        /// Used for storing the output and error messages for processes started this node object.
+        /// </summary>
         private static OutErr globalOutErr = new OutErr();
 
         /// <summary>
         /// An interface to the service for communication purposes.
         /// </summary>
         private INodeService service;
-
-        public InstallationStatus PythonInstalled { get; private set; }
-        public InstallationStatus PsutilInstalled { get; private set; }
-        public InstallationStatus WindbgInstalled { get; private set; }
-        public InstallationStatus BangExploitableInstalled { get; private set; }
-        public InstallationStatus AutoitInstalled { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the Node class.
@@ -131,6 +110,31 @@
         /// Gets the last cached status of the connection.
         /// </summary>
         public ConnectionStatus Status { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating if Python 2.7 is installed on the node.
+        /// </summary>
+        public InstallationStatus PythonInstalled { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating if psutil is installed on the node.
+        /// </summary>
+        public InstallationStatus PsutilInstalled { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating if WinDbg is installed on the node.
+        /// </summary>
+        public InstallationStatus WindbgInstalled { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating if !exploitable is installed on the node.
+        /// </summary>
+        public InstallationStatus BangExploitableInstalled { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating if AutoIt is installed on the node.
+        /// </summary>
+        public InstallationStatus AutoitInstalled { get; private set; }
 
         /// <summary>
         /// Tests if the node is online, offline, or something unknown.
@@ -217,7 +221,7 @@
             PsExec(this.Address, "net share shared /delete");
 
             // Verify that the necessary software is installed.
-            bool allInstallationsExist = CheckInstallations();
+            bool allInstallationsExist = this.CheckForBaseInstallations();
 
             // Start the node server on the remote system.
             if (allInstallationsExist)
@@ -232,7 +236,7 @@
         public void InstallSoftware()
         {
             // See what software is installed.
-            this.CheckInstallations();
+            this.CheckForBaseInstallations();
 
             // Create the fuzzing_tools directory on the target system if it does not exist.
             PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
@@ -276,9 +280,9 @@
             {
                 if (!File.Exists(@"..\..\..\installers\ez_setup.py"))
                 {
-                    using (WebClient Client = new WebClient())
+                    using (WebClient client = new WebClient())
                     {
-                        Client.DownloadFile("https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py", @"..\..\..\installers\ez_setup.py");
+                        client.DownloadFile("https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py", @"..\..\..\installers\ez_setup.py");
                     }
                 }
 
@@ -294,12 +298,20 @@
             PsExec(this.Address, "net share shared /delete");
         }
 
+        /// <summary>
+        /// Determines if the node is online and connected to the controller service.
+        /// </summary>
+        /// <returns>true if the node is online and connected to the controller service</returns>
         public bool IsOnline()
         {
             return this.UpdateStatus() == ConnectionStatus.Online;
         }
 
-        public bool CheckInstallations()
+        /// <summary>
+        /// Determines if the node has various pieces of software installed required for controlling the node.
+        /// </summary>
+        /// <returns>true if all the necessary software is installed</returns>
+        public bool CheckForBaseInstallations()
         {
             OutErr oe = PsExec(this.Address, @"cmd /c dir c:\");
             if (oe.Output.ToLower().Contains("python27"))
@@ -419,6 +431,11 @@
             return this.Address.Equals(obj.Address);
         }
 
+        /// <summary>
+        /// Receives and saves the output message to the global error message object.
+        /// </summary>
+        /// <param name="sendingProcess">the process that generated the output message</param>
+        /// <param name="outLine">the output message</param>
         private static void OutputReciever(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if (!string.IsNullOrEmpty(outLine.Data))
@@ -427,6 +444,11 @@
             }
         }
 
+        /// <summary>
+        /// Receives and saves the error message to the global error message object.
+        /// </summary>
+        /// <param name="sendingProcess">the process that generated the error message</param>
+        /// <param name="errLine">the error message</param>
         private static void ErrorReciever(object sendingProcess, DataReceivedEventArgs errLine)
         {
             if (!string.IsNullOrEmpty(errLine.Data))
@@ -440,6 +462,7 @@
         /// </summary>
         /// <param name="command">the command to be executed</param>
         /// <param name="showOutput">true if the command's output should be shown</param>
+        /// <returns>the output and error messages of the process</returns>
         private static OutErr ExecuteLocalCommand(string command, bool showOutput = false)
         {
             if (string.IsNullOrEmpty(command))
@@ -488,6 +511,7 @@
         /// </summary>
         /// <param name="address">the IP address of the system on which to execute the command</param>
         /// <param name="command">the command to be executed</param>
+        /// <returns>the output and error messages of the process</returns>
         private static OutErr PsExec(IPAddress address, string command)
         {
             string fullCommand = @"psexec \\" + address.ToString() + " -u " + Username + " -p " + Password + " " + command;

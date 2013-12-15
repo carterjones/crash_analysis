@@ -19,7 +19,7 @@
         /// <summary>
         /// A list of IP addresses of fuzzing nodes.
         /// </summary>
-        //private static string[] nodeAddresses = { "192.168.139.148" };
+        ////private static string[] nodeAddresses = { "192.168.139.148" };
         private static string[] nodeAddresses = { "192.168.139.134" };
 
         /// <summary>
@@ -73,7 +73,7 @@
                 }
                 else if (userInput.Equals("install"))
                 {
-                    InstallSoftware(svc);
+                    InstallBaseSoftware(svc);
                 }
                 else if (userInput.Equals("help"))
                 {
@@ -149,13 +149,17 @@
             }
         }
 
+        /// <summary>
+        /// List the base software installed on a node.
+        /// </summary>
+        /// <param name="svc">the controller service</param>
         private static void ListSoftware(ControllerService svc)
         {
             foreach (Node node in svc.GetNodes())
             {
                 if (!node.IsOnline())
                 {
-                    node.CheckInstallations();
+                    node.CheckForBaseInstallations();
                     Console.WriteLine(node.Address.ToString() + ":");
                     Console.WriteLine("  python:       " + node.PythonInstalled.DescriptionAttr());
                     Console.WriteLine("  psutil:       " + node.PsutilInstalled.DescriptionAttr());
@@ -167,7 +171,11 @@
             }
         }
 
-        private static void InstallSoftware(ControllerService svc)
+        /// <summary>
+        /// Install the base software necessary to control a node and perform triaging.
+        /// </summary>
+        /// <param name="svc">the controller service</param>
+        private static void InstallBaseSoftware(ControllerService svc)
         {
             foreach (Node node in svc.GetNodes())
             {
