@@ -190,7 +190,7 @@
         {
             if (!this.IsOnline())
             {
-                PsExec(this.Address, @"-i -d ""C:\Python27\python.exe"" ""C:\fuzzing_tools\node_server.py""");
+                this.PsExec(@"-i -d ""C:\Python27\python.exe"" ""C:\fuzzing_tools\node_server.py""");
             }
         }
 
@@ -200,10 +200,10 @@
         public void Initialize()
         {
             // Create the fuzzing_tools directory on the target system if it does not exist.
-            PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools");
+            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools");
 
             // Share the directory on the remote system.
-            PsExec(this.Address, @"net share shared=""C:\fuzzing_tools""");
+            this.PsExec(@"net share shared=""C:\fuzzing_tools""");
 
             // Connect a volume on localhost to the directory on the remote system.
             ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
@@ -218,7 +218,7 @@
             ExecuteLocalCommand("net use z: /delete");
 
             // Unshare the directory on the remote system.
-            PsExec(this.Address, "net share shared /delete");
+            this.PsExec("net share shared /delete");
 
             // Verify that the necessary software is installed.
             bool allInstallationsExist = this.CheckForBaseInstallations();
@@ -239,10 +239,10 @@
             this.CheckForBaseInstallations();
 
             // Create the fuzzing_tools directory on the target system if it does not exist.
-            PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
+            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
 
             // Share the directory on the remote system.
-            PsExec(this.Address, @"net share shared=""C:\fuzzing_tools\installers""");
+            this.PsExec(@"net share shared=""C:\fuzzing_tools\installers""");
 
             // Connect a volume on localhost to the directory on the remote system.
             ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
@@ -251,28 +251,28 @@
             if (this.AutoitInstalled != InstallationStatus.Installed)
             {
                 File.Copy(@"..\..\..\installers\autoit-v3-setup.exe", @"z:\autoit-v3-setup.exe", true);
-                PsExec(this.Address, @"c:\fuzzing_tools\installers\autoit-v3-setup.exe /S");
+                this.PsExec(@"c:\fuzzing_tools\installers\autoit-v3-setup.exe /S");
             }
 
             // Install WinDbg.
             if (this.WindbgInstalled != InstallationStatus.Installed)
             {
                 File.Copy(@"..\..\..\installers\dbg_x86.msi", @"z:\dbg_x86.msi", true);
-                PsExec(this.Address, @"msiexec /i c:\fuzzing_tools\installers\dbg_x86.msi /q");
+                this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\dbg_x86.msi /q");
             }
 
             // Install !exploitable.
             if (this.BangExploitableInstalled != InstallationStatus.Installed)
             {
                 File.Copy(@"..\..\..\installers\MSEC.dll", @"z:\MSEC.dll", true);
-                PsExec(this.Address, @"cmd /c copy C:\fuzzing_tools\installers\MSEC.dll ""C:\Program Files\Debugging Tools for Windows (x86)\MSEC.dll""");
+                this.PsExec(@"cmd /c copy C:\fuzzing_tools\installers\MSEC.dll ""C:\Program Files\Debugging Tools for Windows (x86)\MSEC.dll""");
             }
 
             // Install Python 2.7.
             if (this.PythonInstalled != InstallationStatus.Installed)
             {
                 File.Copy(@"..\..\..\installers\python-2.7.6.msi", @"z:\python-2.7.6.msi", true);
-                PsExec(this.Address, @"msiexec /i c:\fuzzing_tools\installers\python-2.7.6.msi /q");
+                this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\python-2.7.6.msi /q");
             }
 
             // Install psutils.
@@ -287,15 +287,15 @@
                 }
 
                 File.Copy(@"..\..\..\installers\ez_setup.py", @"z:\ez_setup.py", true);
-                PsExec(this.Address, @"C:\Python27\python.exe c:\fuzzing_tools\installers\ez_setup.py");
-                PsExec(this.Address, @"c:\python27\scripts\easy_install psutil");
+                this.PsExec(@"C:\Python27\python.exe c:\fuzzing_tools\installers\ez_setup.py");
+                this.PsExec(@"c:\python27\scripts\easy_install psutil");
             }
 
             // Delete the volume on localhost that is connected to the directory on the remote system.
             ExecuteLocalCommand("net use z: /delete");
 
             // Unshare the directory on the remote system.
-            PsExec(this.Address, "net share shared /delete");
+            this.PsExec("net share shared /delete");
         }
 
         /// <summary>
@@ -313,7 +313,7 @@
         /// <returns>true if all the necessary software is installed</returns>
         public bool CheckForBaseInstallations()
         {
-            OutErr oe = PsExec(this.Address, @"cmd /c dir c:\");
+            OutErr oe = this.PsExec(@"cmd /c dir c:\");
             if (oe.Output.ToLower().Contains("python27"))
             {
                 this.PythonInstalled = InstallationStatus.Installed;
@@ -323,7 +323,7 @@
                 this.PythonInstalled = InstallationStatus.NotInstalled;
             }
 
-            oe = PsExec(this.Address, @"cmd /c dir ""C:\Python27\Lib\site-packages\""");
+            oe = this.PsExec(@"cmd /c dir ""C:\Python27\Lib\site-packages\""");
             if (oe.Output.ToLower().Contains("psutil"))
             {
                 this.PsutilInstalled = InstallationStatus.Installed;
@@ -333,7 +333,7 @@
                 this.PsutilInstalled = InstallationStatus.NotInstalled;
             }
 
-            oe = PsExec(this.Address, @"cmd /c dir ""c:\program files\""");
+            oe = this.PsExec(@"cmd /c dir ""c:\program files\""");
             if (oe.Output.ToLower().Contains("debugging tools for windows (x86)"))
             {
                 this.WindbgInstalled = InstallationStatus.Installed;
@@ -352,7 +352,7 @@
                 this.AutoitInstalled = InstallationStatus.NotInstalled;
             }
 
-            oe = PsExec(this.Address, @"cmd /c dir ""c:\program files\debugging tools for windows (x86)\""");
+            oe = this.PsExec(@"cmd /c dir ""c:\program files\debugging tools for windows (x86)\""");
             if (oe.Output.ToLower().Contains("msec.dll"))
             {
                 this.BangExploitableInstalled = InstallationStatus.Installed;
@@ -375,7 +375,7 @@
         /// </summary>
         public void DeployVlc()
         {
-            OutErr oe = PsExec(this.Address, @"cmd /c dir ""c:\program files\""");
+            OutErr oe = this.PsExec(@"cmd /c dir ""c:\program files\""");
             if (oe.Output.ToLower().Contains("videolan"))
             {
                 // VLC is already installed.
@@ -383,23 +383,23 @@
             }
 
             // Create the fuzzing_tools directory on the target system if it does not exist.
-            PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
+            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
 
             // Share the directory on the remote system.
-            PsExec(this.Address, @"net share shared=""C:\fuzzing_tools\installers""");
+            this.PsExec(@"net share shared=""C:\fuzzing_tools\installers""");
 
             // Connect a volume on localhost to the directory on the remote system.
             ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
 
             // Install VLC.
             File.Copy(@"..\..\..\installers\vlc-2.1.1-win32.exe", @"z:\vlc-2.1.1-win32.exe", true);
-            PsExec(this.Address, @"c:\fuzzing_tools\installers\vlc-2.1.1-win32.exe /L=1033 /S");
+            this.PsExec(@"c:\fuzzing_tools\installers\vlc-2.1.1-win32.exe /L=1033 /S");
 
             // Delete the volume on localhost that is connected to the directory on the remote system.
             ExecuteLocalCommand("net use z: /delete");
 
             // Unshare the directory on the remote system.
-            PsExec(this.Address, "net share shared /delete");
+            this.PsExec("net share shared /delete");
         }
 
         /// <summary>
@@ -407,7 +407,7 @@
         /// </summary>
         public void DeployMiniFuzz()
         {
-            OutErr oe = PsExec(this.Address, @"cmd /c dir ""C:\Program Files\Microsoft\""");
+            OutErr oe = this.PsExec(@"cmd /c dir ""C:\Program Files\Microsoft\""");
             if (oe.Output.ToLower().Contains("minifuzz"))
             {
                 // MiniFuzz is already installed.
@@ -415,27 +415,27 @@
             }
 
             // Create the fuzzing_tools directory on the target system if it does not exist.
-            PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
+            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
 
             // Share the directory on the remote system.
-            PsExec(this.Address, @"net share shared=""C:\fuzzing_tools\installers""");
+            this.PsExec(@"net share shared=""C:\fuzzing_tools\installers""");
 
             // Connect a volume on localhost to the directory on the remote system.
             ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
 
             // Install MiniFuzz.
             File.Copy(@"..\..\..\installers\MiniFuzzSetup.msi", @"z:\MiniFuzzSetup.msi", true);
-            PsExec(this.Address, @"msiexec /i c:\fuzzing_tools\installers\MiniFuzzSetup.msi /q");
+            this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\MiniFuzzSetup.msi /q");
 
             // Copy configuration file over to node.
             File.Copy(@"..\..\..\installers\minifuzz.cfg", @"z:\minifuzz.cfg", true);
-            PsExec(this.Address, @"cmd /c copy c:\fuzzing_tools\installers\minifuzz.cfg ""C:\Program Files\Microsoft\MiniFuzz\minifuzz.cfg"" /y");
+            this.PsExec(@"cmd /c copy c:\fuzzing_tools\installers\minifuzz.cfg ""C:\Program Files\Microsoft\MiniFuzz\minifuzz.cfg"" /y");
 
             // Delete the volume on localhost that is connected to the directory on the remote system.
             ExecuteLocalCommand("net use z: /delete");
 
             // Unshare the directory on the remote system.
-            PsExec(this.Address, "net share shared /delete");
+            this.PsExec("net share shared /delete");
         }
 
         /// <summary>
@@ -575,14 +575,13 @@
         }
 
         /// <summary>
-        /// Use the PsExec utility to remotely execute a command.
+        /// Use the PsExec utility to remotely execute a command on the node.
         /// </summary>
-        /// <param name="address">the IP address of the system on which to execute the command</param>
         /// <param name="command">the command to be executed</param>
         /// <returns>the output and error messages of the process</returns>
-        private static OutErr PsExec(IPAddress address, string command)
+        private OutErr PsExec(string command)
         {
-            string fullCommand = @"psexec \\" + address.ToString() + " -u " + Username + " -p " + Password + " " + command;
+            string fullCommand = @"psexec \\" + this.Address.ToString() + " -u " + Username + " -p " + Password + " " + command;
             return ExecuteLocalCommand(fullCommand);
         }
     }
