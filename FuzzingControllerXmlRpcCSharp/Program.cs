@@ -75,15 +75,25 @@
                 {
                     InstallBaseSoftware(svc);
                 }
+                else if (userInput.Equals("deploy-vlc"))
+                {
+                    DeployVlc(svc);
+                }
+                else if (userInput.Equals("deploy-minifuzz"))
+                {
+                    DeployMiniFuzz(svc);
+                }
                 else if (userInput.Equals("help"))
                 {
                     Console.WriteLine("available commands:");
-                    Console.WriteLine("  help      - display this help documentation");
-                    Console.WriteLine("  nodes     - list the nodes that have successfully connected to this controller");
-                    Console.WriteLine("  update    - updates the status of each of the nodes");
-                    Console.WriteLine("  reconnect - reconnect any nodes that have been disconnected");
-                    Console.WriteLine("  software  - show which necessary software is or is not installed nodes that are not connected");
-                    Console.WriteLine("  install   - install necessary software to nodes that are not connected");
+                    Console.WriteLine("  help       - display this help documentation");
+                    Console.WriteLine("  nodes      - list the nodes that have successfully connected to this controller");
+                    Console.WriteLine("  update     - updates the status of each of the nodes");
+                    Console.WriteLine("  reconnect  - reconnect any nodes that have been disconnected");
+                    Console.WriteLine("  software   - show which necessary software is or is not installed nodes that are not connected");
+                    Console.WriteLine("  install    - install necessary software to nodes that are not connected");
+                    Console.WriteLine("  deploy-vlc - install a target to be fuzzed on all nodes that do not have it yet");
+                    Console.WriteLine("  deploy-minifuzz - install minifuzz on all nodes that do not have it yet");
                 }
             }
         }
@@ -179,7 +189,31 @@
         {
             foreach (Node node in svc.GetNodes())
             {
-                node.InstallSoftware();
+                node.InstallBaseSoftware();
+            }
+        }
+
+        /// <summary>
+        /// Install VLC on all the nodes.
+        /// </summary>
+        /// <param name="svc">the controller service</param>
+        private static void DeployVlc(ControllerService svc)
+        {
+            foreach (Node node in svc.GetNodes())
+            {
+                node.DeployVlc();
+            }
+        }
+
+        /// <summary>
+        /// Install MiniFuzz on all the nodes.
+        /// </summary>
+        /// <param name="svc">the controller service</param>
+        private static void DeployMiniFuzz(ControllerService svc)
+        {
+            foreach (Node node in svc.GetNodes())
+            {
+                node.DeployMiniFuzz();
             }
         }
     }

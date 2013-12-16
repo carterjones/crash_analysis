@@ -233,7 +233,7 @@
         /// <summary>
         /// Installs necessary software on the node.
         /// </summary>
-        public void InstallSoftware()
+        public void InstallBaseSoftware()
         {
             // See what software is installed.
             this.CheckForBaseInstallations();
@@ -368,6 +368,74 @@
                 this.WindbgInstalled == InstallationStatus.Installed &&
                 this.BangExploitableInstalled == InstallationStatus.Installed &&
                 this.AutoitInstalled == InstallationStatus.Installed;
+        }
+
+        /// <summary>
+        /// Install VLC on the node, if it is not already installed.
+        /// </summary>
+        public void DeployVlc()
+        {
+            OutErr oe = PsExec(this.Address, @"cmd /c dir ""c:\program files\""");
+            if (oe.Output.ToLower().Contains("videolan"))
+            {
+                // VLC is already installed.
+                return;
+            }
+
+            // Create the fuzzing_tools directory on the target system if it does not exist.
+            PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
+
+            // Share the directory on the remote system.
+            PsExec(this.Address, @"net share shared=""C:\fuzzing_tools\installers""");
+
+            // Connect a volume on localhost to the directory on the remote system.
+            ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
+
+            // Install VLC.
+            File.Copy(@"..\..\..\installers\vlc-2.1.1-win32.exe", @"z:\vlc-2.1.1-win32.exe", true);
+            PsExec(this.Address, @"c:\fuzzing_tools\installers\vlc-2.1.1-win32.exe /L=1033 /S");
+
+            // Delete the volume on localhost that is connected to the directory on the remote system.
+            ExecuteLocalCommand("net use z: /delete");
+
+            // Unshare the directory on the remote system.
+            PsExec(this.Address, "net share shared /delete");
+        }
+
+        /// <summary>
+        /// Install MiniFuzz on the node, if it is not already installed.
+        /// </summary>
+        public void DeployMiniFuzz()
+        {
+            OutErr oe = PsExec(this.Address, @"cmd /c dir ""C:\Program Files\Microsoft\""");
+            if (oe.Output.ToLower().Contains("minifuzz"))
+            {
+                // MiniFuzz is already installed.
+                return;
+            }
+
+            // Create the fuzzing_tools directory on the target system if it does not exist.
+            PsExec(this.Address, @"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
+
+            // Share the directory on the remote system.
+            PsExec(this.Address, @"net share shared=""C:\fuzzing_tools\installers""");
+
+            // Connect a volume on localhost to the directory on the remote system.
+            ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
+
+            // Install MiniFuzz.
+            File.Copy(@"..\..\..\installers\MiniFuzzSetup.msi", @"z:\MiniFuzzSetup.msi", true);
+            PsExec(this.Address, @"msiexec /i c:\fuzzing_tools\installers\MiniFuzzSetup.msi /q");
+
+            // Copy configuration file over to node.
+            File.Copy(@"..\..\..\installers\minifuzz.cfg", @"z:\minifuzz.cfg", true);
+            PsExec(this.Address, @"cmd /c copy c:\fuzzing_tools\installers\minifuzz.cfg ""C:\Program Files\Microsoft\MiniFuzz\minifuzz.cfg"" /y");
+
+            // Delete the volume on localhost that is connected to the directory on the remote system.
+            ExecuteLocalCommand("net use z: /delete");
+
+            // Unshare the directory on the remote system.
+            PsExec(this.Address, "net share shared /delete");
         }
 
         /// <summary>
