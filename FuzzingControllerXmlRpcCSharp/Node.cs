@@ -19,12 +19,12 @@
         /// <summary>
         /// The username for this node.
         /// </summary>
-        private const string Username = "admin";
+        private string Username = "admin";
 
         /// <summary>
         /// The password for this node.
         /// </summary>
-        private const string Password = "1";
+        private string Password = "1";
 
         /// <summary>
         /// Used for storing the output and error messages for processes started this node object.
@@ -35,6 +35,10 @@
         /// An interface to the service for communication purposes.
         /// </summary>
         private INodeService service;
+
+        private bool isAuthenticatedWithNetUse = false;
+
+        private bool installerDirectoryCreated = false;
 
         /// <summary>
         /// Initializes a new instance of the Node class.
@@ -194,31 +198,37 @@
             }
         }
 
+        private void AuthenticateWithNetUse()
+        {
+            if (!this.isAuthenticatedWithNetUse)
+            {
+                ExecuteLocalCommand(@"net use \\" + this.Address + " /user:" + this.Username + " " + this.Password);
+                this.isAuthenticatedWithNetUse = true;
+            }
+        }
+
+        public void CopyFileToNode(string localPath, string nodePath)
+        {
+            AuthenticateWithNetUse();
+            string normalizedLocalPath = Path.GetFullPath(localPath);
+            string normalizedNodePath = nodePath.ToLower().Replace("c:", @"c$");
+            ExecuteLocalCommand("cmd /c copy " + localPath + @" \\" + this.Address + @"\" + normalizedNodePath);
+        }
+
         /// <summary>
         /// Initializes the scripts to be run on a node. Connects the node to this controller.
         /// </summary>
         public void Initialize()
         {
-            // Create the fuzzing_tools directory on the target system if it does not exist.
-            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools");
-
-            // Share the directory on the remote system.
-            this.PsExec(@"net share shared=""C:\fuzzing_tools""");
-
-            // Connect a volume on localhost to the directory on the remote system.
-            ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
+            // Create a directory on the remote system.
+            PsExec(@"cmd /c mkdir c:\fuzzing_tools");
 
             // Copy the scripts to the remote system.
-            File.Copy(@"..\..\..\node_server.py", @"z:\node_server.py", true);
-            File.Copy(@"..\..\..\start_minifuzz.au3", @"z:\start_minifuzz.au3", true);
-            File.Copy(@"..\..\..\stop_minifuzz.au3", @"z:\stop_minifuzz.au3", true);
-            File.Copy(@"..\..\..\triage.py", @"z:\triage.py", true);
-
-            // Delete the volume on localhost that is connected to the directory on the remote system.
-            ExecuteLocalCommand("net use z: /delete");
-
-            // Unshare the directory on the remote system.
-            this.PsExec("net share shared /delete");
+            string[] scripts = { "node_server.py", "start_minifuzz.au3", "stop_minifuzz.au3", "triage.py" };
+            foreach (string script in scripts)
+            {
+                CopyFileToNode(@"..\..\..\" + script, @"c:\fuzzing_tools\" + script);
+            }
 
             // Verify that the necessary software is installed.
             bool allInstallationsExist = this.CheckForBaseInstallations();
@@ -230,6 +240,17 @@
             }
         }
 
+        private void CopyInstallerToNode(string installerFileName)
+        {
+            if (!installerDirectoryCreated)
+            {
+                PsExec(@"cmd /c mkdir c:\fuzzing_tools\installers");
+                this.installerDirectoryCreated = true;
+            }
+
+            CopyFileToNode(@"..\..\..\installers\" + installerFileName, @"c:\fuzzing_tools\installers\" + installerFileName);
+        }
+
         /// <summary>
         /// Installs necessary software on the node.
         /// </summary>
@@ -238,40 +259,31 @@
             // See what software is installed.
             this.CheckForBaseInstallations();
 
-            // Create the fuzzing_tools directory on the target system if it does not exist.
-            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
-
-            // Share the directory on the remote system.
-            this.PsExec(@"net share shared=""C:\fuzzing_tools\installers""");
-
-            // Connect a volume on localhost to the directory on the remote system.
-            ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
-
             // Install AutoIt.
             if (this.AutoitInstalled != InstallationStatus.Installed)
             {
-                File.Copy(@"..\..\..\installers\autoit-v3-setup.exe", @"z:\autoit-v3-setup.exe", true);
+                CopyInstallerToNode("autoit-v3-setup.exe");
                 this.PsExec(@"c:\fuzzing_tools\installers\autoit-v3-setup.exe /S");
             }
 
             // Install WinDbg.
             if (this.WindbgInstalled != InstallationStatus.Installed)
             {
-                File.Copy(@"..\..\..\installers\dbg_x86.msi", @"z:\dbg_x86.msi", true);
+                CopyInstallerToNode("dbg_x86.msi");
                 this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\dbg_x86.msi /q");
             }
 
             // Install !exploitable.
             if (this.BangExploitableInstalled != InstallationStatus.Installed)
             {
-                File.Copy(@"..\..\..\installers\MSEC.dll", @"z:\MSEC.dll", true);
+                CopyInstallerToNode("MSEC.dll");
                 this.PsExec(@"cmd /c copy C:\fuzzing_tools\installers\MSEC.dll ""C:\Program Files\Debugging Tools for Windows (x86)\MSEC.dll""");
             }
 
             // Install Python 2.7.
             if (this.PythonInstalled != InstallationStatus.Installed)
             {
-                File.Copy(@"..\..\..\installers\python-2.7.6.msi", @"z:\python-2.7.6.msi", true);
+                CopyInstallerToNode("python-2.7.6.msi");
                 this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\python-2.7.6.msi /q");
             }
 
@@ -286,16 +298,10 @@
                     }
                 }
 
-                File.Copy(@"..\..\..\installers\ez_setup.py", @"z:\ez_setup.py", true);
+                CopyInstallerToNode("ez_setup.py");
                 this.PsExec(@"C:\Python27\python.exe c:\fuzzing_tools\installers\ez_setup.py");
                 this.PsExec(@"c:\python27\scripts\easy_install psutil");
             }
-
-            // Delete the volume on localhost that is connected to the directory on the remote system.
-            ExecuteLocalCommand("net use z: /delete");
-
-            // Unshare the directory on the remote system.
-            this.PsExec("net share shared /delete");
         }
 
         /// <summary>
@@ -382,24 +388,9 @@
                 return;
             }
 
-            // Create the fuzzing_tools directory on the target system if it does not exist.
-            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
-
-            // Share the directory on the remote system.
-            this.PsExec(@"net share shared=""C:\fuzzing_tools\installers""");
-
-            // Connect a volume on localhost to the directory on the remote system.
-            ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
-
             // Install VLC.
-            File.Copy(@"..\..\..\installers\vlc-2.1.1-win32.exe", @"z:\vlc-2.1.1-win32.exe", true);
+            CopyInstallerToNode("vlc-2.1.1-win32.exe");
             this.PsExec(@"c:\fuzzing_tools\installers\vlc-2.1.1-win32.exe /L=1033 /S");
-
-            // Delete the volume on localhost that is connected to the directory on the remote system.
-            ExecuteLocalCommand("net use z: /delete");
-
-            // Unshare the directory on the remote system.
-            this.PsExec("net share shared /delete");
         }
 
         /// <summary>
@@ -414,28 +405,13 @@
                 return;
             }
 
-            // Create the fuzzing_tools directory on the target system if it does not exist.
-            this.PsExec(@"-w c:\ -d cmd /c mkdir fuzzing_tools\installers");
-
-            // Share the directory on the remote system.
-            this.PsExec(@"net share shared=""C:\fuzzing_tools\installers""");
-
-            // Connect a volume on localhost to the directory on the remote system.
-            ExecuteLocalCommand(@"net use z: \\" + this.Address.ToString() + @"\shared /user:" + Username + " " + Password);
-
             // Install MiniFuzz.
-            File.Copy(@"..\..\..\installers\MiniFuzzSetup.msi", @"z:\MiniFuzzSetup.msi", true);
+            CopyInstallerToNode("MiniFuzzSetup.msi");
             this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\MiniFuzzSetup.msi /q");
 
             // Copy configuration file over to node.
-            File.Copy(@"..\..\..\installers\minifuzz.cfg", @"z:\minifuzz.cfg", true);
+            CopyInstallerToNode("minifuzz.cfg");
             this.PsExec(@"cmd /c copy c:\fuzzing_tools\installers\minifuzz.cfg ""C:\Program Files\Microsoft\MiniFuzz\minifuzz.cfg"" /y");
-
-            // Delete the volume on localhost that is connected to the directory on the remote system.
-            ExecuteLocalCommand("net use z: /delete");
-
-            // Unshare the directory on the remote system.
-            this.PsExec("net share shared /delete");
         }
 
         /// <summary>

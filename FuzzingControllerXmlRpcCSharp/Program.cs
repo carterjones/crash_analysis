@@ -19,8 +19,10 @@
         /// <summary>
         /// A list of IP addresses of fuzzing nodes.
         /// </summary>
-        ////private static string[] nodeAddresses = { "192.168.139.148" };
         private static string[] nodeAddresses = { "192.168.139.134" };
+                                                  //"192.168.139.148",
+                                                  //"192.168.139.149",
+                                                  //"192.168.139.150" };
 
         /// <summary>
         /// The entry point of the program.
