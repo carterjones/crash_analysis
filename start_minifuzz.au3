@@ -28,7 +28,7 @@ While 1
    ; Do not send a crash report
    If WinExists("VLC crash reporting") Then
      WinActivate("VLC crash reporting")
-     ControlClick("VLC crash reporting", "", "[Text:No]")
+     ControlClick("VLC crash reporting", "", "[CLASS:Button; INSTANCE:2]")
    EndIf
 
    ; Close Visual C++ Runtime Library error window
