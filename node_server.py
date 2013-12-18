@@ -27,7 +27,7 @@ class FuzzingNode:
     t.daemon = True
     t.start()
 
-  def ping(self):
+  def test_connection(self):
     return True
 
 def register_fuzzing_node():

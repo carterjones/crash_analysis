@@ -7,6 +7,7 @@
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Net.NetworkInformation;
     using System.Text;
     using System.Threading.Tasks;
     using CookComputing.XmlRpc;
@@ -148,18 +149,25 @@
         /// <returns>the result of the test</returns>
         public ConnectionStatus UpdateStatus()
         {
-            try
-            {
-                this.service.Ping();
-                this.Status = ConnectionStatus.Online;
-            }
-            catch (WebException)
+            if (!this.IsOnline())
             {
                 this.Status = ConnectionStatus.Offline;
             }
-            catch (Exception)
+            else
             {
-                this.Status = ConnectionStatus.Unknown;
+                try
+                {
+                    this.service.TestConnection();
+                    this.Status = ConnectionStatus.Online;
+                }
+                catch (WebException)
+                {
+                    this.Status = ConnectionStatus.Offline;
+                }
+                catch (Exception)
+                {
+                    this.Status = ConnectionStatus.Unknown;
+                }
             }
 
             return this.Status;
@@ -194,7 +202,7 @@
         /// </summary>
         public void Connect()
         {
-            if (!this.IsOnline(true))
+            if (!this.IsConnectedToController(true))
             {
                 this.PsExec(@"-i -d ""C:\Python27\python.exe"" ""C:\fuzzing_tools\node_server.py""");
             }
@@ -228,6 +236,11 @@
         public void Initialize()
         {
             if (isInitialized)
+            {
+                return;
+            }
+
+            if (!this.IsOnline())
             {
                 return;
             }
@@ -322,7 +335,7 @@
         /// Determines if the node is online and connected to the controller service.
         /// </summary>
         /// <returns>true if the node is online and connected to the controller service</returns>
-        public bool IsOnline(bool performUpdate = false)
+        public bool IsConnectedToController(bool performUpdate = false)
         {
             if (performUpdate)
             {
@@ -332,6 +345,12 @@
             {
                 return this.Status == ConnectionStatus.Online;
             }
+        }
+
+        public bool IsOnline()
+        {
+            PingReply reply = new Ping().Send(this.Address);
+            return reply.Status == IPStatus.Success;
         }
 
         /// <summary>
@@ -578,6 +597,11 @@
         /// <returns>the output and error messages of the process</returns>
         private OutErr PsExec(string command)
         {
+            if (!this.IsOnline())
+            {
+                throw new InvalidOperationException(this.Address.ToString() + " is offline. Cannot execute PsExec command.");
+            }
+
             string fullCommand = @"psexec \\" + this.Address.ToString() + " -u " + Username + " -p " + Password + " " + command;
             return ExecuteLocalCommand(fullCommand);
         }

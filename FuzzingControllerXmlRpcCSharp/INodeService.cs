@@ -25,7 +25,7 @@
         /// Tests to make sure the connection to the node is still alive.
         /// </summary>
         /// <returns>always returns true</returns>
-        [XmlRpcMethod("ping")]
-        bool Ping();
+        [XmlRpcMethod("test_connection")]
+        bool TestConnection();
     }
 }

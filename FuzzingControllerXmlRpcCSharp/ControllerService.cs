@@ -66,17 +66,6 @@
         }
 
         /// <summary>
-        /// Update the list of nodes to see which ones are online/offline/unknown.
-        /// </summary>
-        public void UpdateStatuses()
-        {
-            foreach (Node node in this.nodes)
-            {
-                node.UpdateStatus();
-            }
-        }
-
-        /// <summary>
         /// Obtains a list of nodes that have been connected to the service.
         /// </summary>
         /// <returns>returns a list of nodes that have been connected to the service</returns>

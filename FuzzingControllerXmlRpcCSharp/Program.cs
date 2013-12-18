@@ -65,7 +65,7 @@
                 }
                 else if (userInput.Equals("update"))
                 {
-                    svc.UpdateStatuses();
+                    PerformActionOnNodesInParallel(n => n.UpdateStatus(), svc.GetNodes());
                     ListNodes(svc);
                 }
                 else if (userInput.Equals("reconnect"))
@@ -179,7 +179,7 @@
 
             foreach (Node node in nodes)
             {
-                if (!node.IsOnline())
+                if (!node.IsConnectedToController())
                 {
                     Console.WriteLine(node.Address.ToString() + ":");
                     Console.WriteLine("  python:       " + node.PythonInstalled.DescriptionAttr());
