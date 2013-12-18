@@ -31,20 +31,26 @@
                 return;
             }
 
-            this.AddNode(address);
+            Node node = this.AddNode(address);
+            node.Initialize();
         }
 
         /// <summary>
-        /// Add a node to the list of nodes.
+        /// Add an uninitialized node to the list of nodes. If the node already exists, returns the existing node.
         /// </summary>
         /// <param name="address">the IP address of the node</param>
-        public void AddNode(IPAddress address)
+        public Node AddNode(IPAddress address)
         {
             Node node = new Node(address);
-            if (!this.nodes.Contains(node))
+            Node existingNode = this.nodes.Find(x => x.Equals(node));
+            if (existingNode == null)
             {
                 this.nodes.Add(node);
-                node.Initialize();
+                return node;
+            }
+            else
+            {
+                return existingNode;
             }
         }
 
@@ -74,7 +80,7 @@
         /// Obtains a list of nodes that have been connected to the service.
         /// </summary>
         /// <returns>returns a list of nodes that have been connected to the service</returns>
-        public List<Node> GetNodes()
+        public IEnumerable<Node> GetNodes()
         {
             return this.nodes;
         }

@@ -19,10 +19,13 @@
         /// <summary>
         /// A list of IP addresses of fuzzing nodes.
         /// </summary>
-        private static string[] nodeAddresses = { "192.168.139.134" };
-                                                  //"192.168.139.148",
-                                                  //"192.168.139.149",
-                                                  //"192.168.139.150" };
+        private static string[] nodeAddresses = { //"192.168.139.134",
+                                                  "192.168.139.148",
+                                                  "192.168.139.149",
+                                                  "192.168.139.150"};//,
+                                                  //"192.168.139.151",
+                                                  //"192.168.139.152",
+                                                  //"192.168.139.153" };
 
         /// <summary>
         /// The entry point of the program.
@@ -67,23 +70,23 @@
                 }
                 else if (userInput.Equals("reconnect"))
                 {
-                    svc.ReconnectNodes();
+                    PerformActionOnNodesInParallel(n => n.Connect(), svc.GetNodes());
                 }
                 else if (userInput.Equals("software"))
                 {
-                    ListSoftware(svc);
+                    ListSoftware(svc.GetNodes());
                 }
                 else if (userInput.Equals("install"))
                 {
-                    InstallBaseSoftware(svc);
+                    PerformActionOnNodesInParallel(n => n.InstallBaseSoftware(), svc.GetNodes());
                 }
                 else if (userInput.Equals("deploy-vlc"))
                 {
-                    DeployVlc(svc);
+                    PerformActionOnNodesInParallel(n => n.DeployVlc(), svc.GetNodes());
                 }
                 else if (userInput.Equals("deploy-minifuzz"))
                 {
-                    DeployMiniFuzz(svc);
+                    PerformActionOnNodesInParallel(n => n.DeployMiniFuzz(), svc.GetNodes());
                 }
                 else if (userInput.Equals("help"))
                 {
@@ -133,19 +136,24 @@
         /// <param name="svc">the Controller service</param>
         private static void InitializeNodes(ControllerService svc)
         {
+            List<Node> nodes = new List<Node>();
             IPAddress address = null;
 
+            // Add the nodes to the controller.
             foreach (string addressStr in nodeAddresses)
             {
                 if (IPAddress.TryParse(addressStr, out address))
                 {
-                    svc.AddNode(address);
+                    nodes.Add(svc.AddNode(address));
                 }
                 else
                 {
                     Console.WriteLine("[-] Could not parse IP address: " + addressStr);
                 }
             }
+
+            // Initialize the nodes.
+            PerformActionOnNodesInParallel(n => n.Initialize(), svc.GetNodes());
         }
 
         /// <summary>
@@ -165,13 +173,14 @@
         /// List the base software installed on a node.
         /// </summary>
         /// <param name="svc">the controller service</param>
-        private static void ListSoftware(ControllerService svc)
+        private static void ListSoftware(IEnumerable<Node> nodes)
         {
-            foreach (Node node in svc.GetNodes())
+            PerformActionOnNodesInParallel(n => { n.CheckForBaseInstallations(); n.UpdateStatus(); }, nodes);
+
+            foreach (Node node in nodes)
             {
                 if (!node.IsOnline())
                 {
-                    node.CheckForBaseInstallations();
                     Console.WriteLine(node.Address.ToString() + ":");
                     Console.WriteLine("  python:       " + node.PythonInstalled.DescriptionAttr());
                     Console.WriteLine("  psutil:       " + node.PsutilInstalled.DescriptionAttr());
@@ -183,40 +192,15 @@
             }
         }
 
-        /// <summary>
-        /// Install the base software necessary to control a node and perform triaging.
-        /// </summary>
-        /// <param name="svc">the controller service</param>
-        private static void InstallBaseSoftware(ControllerService svc)
+        private static void PerformActionOnNodesInParallel(Action<Node> a, IEnumerable<Node> nodes)
         {
-            foreach (Node node in svc.GetNodes())
+            List<Task> tasks = new List<Task>();
+            foreach (Node node in nodes)
             {
-                node.InstallBaseSoftware();
+                tasks.Add(Task.Run(() => a(node)));
             }
-        }
 
-        /// <summary>
-        /// Install VLC on all the nodes.
-        /// </summary>
-        /// <param name="svc">the controller service</param>
-        private static void DeployVlc(ControllerService svc)
-        {
-            foreach (Node node in svc.GetNodes())
-            {
-                node.DeployVlc();
-            }
-        }
-
-        /// <summary>
-        /// Install MiniFuzz on all the nodes.
-        /// </summary>
-        /// <param name="svc">the controller service</param>
-        private static void DeployMiniFuzz(ControllerService svc)
-        {
-            foreach (Node node in svc.GetNodes())
-            {
-                node.DeployMiniFuzz();
-            }
+            Task.WaitAll(tasks.ToArray());
         }
     }
 }

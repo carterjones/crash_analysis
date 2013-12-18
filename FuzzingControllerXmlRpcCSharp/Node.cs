@@ -29,7 +29,7 @@
         /// <summary>
         /// Used for storing the output and error messages for processes started this node object.
         /// </summary>
-        private static OutErr globalOutErr = new OutErr();
+        private OutErr globalOutErr = new OutErr();
 
         /// <summary>
         /// An interface to the service for communication purposes.
@@ -39,6 +39,8 @@
         private bool isAuthenticatedWithNetUse = false;
 
         private bool installerDirectoryCreated = false;
+
+        private bool isInitialized = false;
 
         /// <summary>
         /// Initializes a new instance of the Node class.
@@ -192,7 +194,7 @@
         /// </summary>
         public void Connect()
         {
-            if (!this.IsOnline())
+            if (!this.IsOnline(true))
             {
                 this.PsExec(@"-i -d ""C:\Python27\python.exe"" ""C:\fuzzing_tools\node_server.py""");
             }
@@ -215,11 +217,21 @@
             ExecuteLocalCommand("cmd /c copy " + localPath + @" \\" + this.Address + @"\" + normalizedNodePath);
         }
 
+        public static void Initialize(Node node)
+        {
+            node.Initialize();
+        }
+
         /// <summary>
         /// Initializes the scripts to be run on a node. Connects the node to this controller.
         /// </summary>
         public void Initialize()
         {
+            if (isInitialized)
+            {
+                return;
+            }
+
             // Create a directory on the remote system.
             PsExec(@"cmd /c mkdir c:\fuzzing_tools");
 
@@ -238,6 +250,8 @@
             {
                 this.Connect();
             }
+
+            isInitialized = true;
         }
 
         private void CopyInstallerToNode(string installerFileName)
@@ -308,9 +322,16 @@
         /// Determines if the node is online and connected to the controller service.
         /// </summary>
         /// <returns>true if the node is online and connected to the controller service</returns>
-        public bool IsOnline()
+        public bool IsOnline(bool performUpdate = false)
         {
-            return this.UpdateStatus() == ConnectionStatus.Online;
+            if (performUpdate)
+            {
+                return this.UpdateStatus() == ConnectionStatus.Online;
+            }
+            else
+            {
+                return this.Status == ConnectionStatus.Online;
+            }
         }
 
         /// <summary>
@@ -480,7 +501,7 @@
         /// </summary>
         /// <param name="sendingProcess">the process that generated the output message</param>
         /// <param name="outLine">the output message</param>
-        private static void OutputReciever(object sendingProcess, DataReceivedEventArgs outLine)
+        private void OutputReciever(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if (!string.IsNullOrEmpty(outLine.Data))
             {
@@ -493,7 +514,7 @@
         /// </summary>
         /// <param name="sendingProcess">the process that generated the error message</param>
         /// <param name="errLine">the error message</param>
-        private static void ErrorReciever(object sendingProcess, DataReceivedEventArgs errLine)
+        private void ErrorReciever(object sendingProcess, DataReceivedEventArgs errLine)
         {
             if (!string.IsNullOrEmpty(errLine.Data))
             {
@@ -507,7 +528,7 @@
         /// <param name="command">the command to be executed</param>
         /// <param name="showOutput">true if the command's output should be shown</param>
         /// <returns>the output and error messages of the process</returns>
-        private static OutErr ExecuteLocalCommand(string command, bool showOutput = false)
+        private OutErr ExecuteLocalCommand(string command, bool showOutput = false)
         {
             if (string.IsNullOrEmpty(command))
             {
