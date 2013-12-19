@@ -7,18 +7,25 @@ import subprocess
 notes
 
 targets should be configured as follows:
-- disable firewall
-- disable simple file sharing (or enable the server service in services.msc)
-- install python 2.7
-  - install psutil
-- install windbg
-  - copy !exploitable to the root directory of windbg
-- enable automatic login (http://support.microsoft.com/kb/315231)
+- manual:
+  - disable firewall
+  - disable simple file sharing
+  - create user:admin, password:1
+- automate this:
+  - install python 2.7
+    - install psutil
+  - install windbg
+    - copy !exploitable to the root directory of windbg
+  - enable automatic login (http://support.microsoft.com/kb/315231)
+  - install autoit
 '''
 
 default_username = 'admin'
 default_password = '1'
-ip_list = ['192.168.139.148']
+ip_list = ['192.168.91.128',
+           '192.168.139.148',
+           '192.168.139.149',
+           '192.168.139.150']
 print_debug_info = False
 show_program_output = False
 
@@ -39,7 +46,7 @@ def psexec(command, ip, username=default_username, password=default_password):
 
 def start_fuzzing(username=default_username, password=default_password):
   for ip in ip_list:
-    print 'Copying over start_minifuzz.au3 and stop_minifuzz.au3...'
+    print 'Copying over start_minifuzz.au3 and stop_minifuzz.au3 on ' + str(ip) + '...'
 
     # Create the fuzzing_tools directory on the target system if it does not
     # exist.
@@ -68,12 +75,12 @@ def start_fuzzing(username=default_username, password=default_password):
 
 def stop_fuzzing(username=default_username, password=default_password):
   for ip in ip_list:
-    print 'Stopping fuzzer...'
+    print 'Stopping fuzzer on ' + str(ip) + '...'
     psexec('-i "C:\\Program Files\\AutoIt3\\AutoIt3.exe" "C:\\fuzzing_tools\\stop_minifuzz.au3"', ip, username, password)
 
 def run_triager(username=default_username, password=default_password):
   for ip in ip_list:
-    print 'Copying over triage.py...'
+    print 'Copying over triage.py on ' + str(ip) + '...'
 
     # Create the fuzzing_tools directory on the target system if it does not
     # exist.
