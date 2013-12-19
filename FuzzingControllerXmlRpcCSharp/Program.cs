@@ -17,18 +17,6 @@
     public class Program
     {
         /// <summary>
-        /// A list of IP addresses of fuzzing nodes.
-        /// </summary>
-        private static string[] nodeAddresses = { "192.168.91.128",
-                                                  "192.168.139.134",
-                                                  "192.168.139.148",
-                                                  "192.168.139.149",
-                                                  "192.168.139.150",
-                                                  "192.168.139.151",
-                                                  "192.168.139.152",
-                                                  "192.168.139.153" };
-
-        /// <summary>
         /// The entry point of the program.
         /// </summary>
         /// <param name="args">command line arguments passed to the program</param>
@@ -132,27 +120,31 @@
             }
         }
 
-        /// <summary>
-        /// Initializes all fuzzing nodes, causing them to connect back to the controller.
-        /// </summary>
-        /// <param name="svc">the Controller service</param>
-        private static void InitializeNodes(NodeManager nm)
+        private static IEnumerable<IPAddress> ReadIpAddressesFromFile(string filename)
         {
-            List<Node> nodes = new List<Node>();
             IPAddress address = null;
 
-            // Add the nodes to the node manager.
-            foreach (string addressStr in nodeAddresses)
+            foreach (string addressStr in File.ReadAllLines(filename))
             {
                 if (IPAddress.TryParse(addressStr, out address))
                 {
-                    nodes.Add(nm.AddNode(address));
+                    yield return address;
                 }
                 else
                 {
                     Console.WriteLine("[-] Could not parse IP address: " + addressStr);
                 }
             }
+        }
+
+        /// <summary>
+        /// Initializes all fuzzing nodes, causing them to connect back to the controller.
+        /// </summary>
+        /// <param name="svc">the Controller service</param>
+        private static void InitializeNodes(NodeManager nm)
+        {
+            // Add the nodes to the node manager.
+            ReadIpAddressesFromFile("ip_list.txt").ToList().ForEach(n => nm.AddNode(n));
 
             // Initialize the nodes.
             nm.InitializeNodes();
