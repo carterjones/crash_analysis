@@ -38,62 +38,40 @@
             // Initialize the nodes.
             nm.InitializeNodes();
 
-            while (true)
-            {
-                Console.Write("> ");
-                string userInput = Console.ReadLine();
-                if (userInput.Equals("exit"))
-                {
-                    nm.CloseNodeListeners();
-                    listener.Stop();
-                    break;
-                }
-                else if (string.IsNullOrEmpty(userInput))
-                {
-                    continue;
-                }
-                else if (userInput.Equals("nodes"))
-                {
-                    nm.ListNodes();
-                }
-                else if (userInput.Equals("update"))
-                {
-                    nm.UpdateStatusOfNodes();
-                    nm.ListNodes();
-                }
-                else if (userInput.Equals("reconnect"))
-                {
-                    nm.ConnectNodes();
-                }
-                else if (userInput.Equals("software"))
-                {
-                    nm.ListSoftware();
-                }
-                else if (userInput.Equals("install"))
-                {
-                    nm.InstallBaseSoftware();
-                }
-                else if (userInput.Equals("deploy-vlc"))
-                {
-                    nm.DeployVlc();
-                }
-                else if (userInput.Equals("deploy-minifuzz"))
-                {
-                    nm.DeployMiniFuzz();
-                }
-                else if (userInput.Equals("help"))
-                {
-                    Console.WriteLine("available commands:");
-                    Console.WriteLine("  help       - display this help documentation");
-                    Console.WriteLine("  nodes      - list the nodes that have successfully connected to this controller");
-                    Console.WriteLine("  update     - updates the status of each of the nodes");
-                    Console.WriteLine("  reconnect  - reconnect any nodes that have been disconnected");
-                    Console.WriteLine("  software   - show which necessary software is or is not installed nodes that are not connected");
-                    Console.WriteLine("  install    - install necessary software to nodes that are not connected");
-                    Console.WriteLine("  deploy-vlc - install a target to be fuzzed on all nodes that do not have it yet");
-                    Console.WriteLine("  deploy-minifuzz - install minifuzz on all nodes that do not have it yet");
-                }
-            }
+            Interpreter i = new Interpreter();
+            i.AddCommand(
+                "exit",
+                "exits the console, closing out any connections to this controller",
+                () => { nm.CloseNodeListeners(); listener.Stop(); i.Stop(); });
+            i.AddCommand(
+                "nodes",
+                "list the nodes that have successfully connected to this controller",
+                () => nm.ListNodes());
+            i.AddCommand(
+                "update",
+                "updates the status of each of the nodes",
+                () => { nm.UpdateStatusOfNodes(); nm.ListNodes(); });
+            i.AddCommand(
+                "reconnect",
+                "reconnect any nodes that have been disconnected",
+                () => nm.ConnectNodes());
+            i.AddCommand(
+                "software",
+                "show which necessary software is or is not installed nodes that are not connected",
+                () => nm.ListSoftware());
+            i.AddCommand(
+                "install",
+                "install necessary software to nodes that are not connected",
+                () => nm.InstallBaseSoftware());
+            i.AddCommand(
+                "deploy-vlc",
+                "install a target to be fuzzed on all nodes that do not have it yet",
+                () => nm.DeployVlc());
+            i.AddCommand(
+                "deploy-minifuzz",
+                "install minifuzz on all nodes that do not have it yet",
+                () => nm.DeployMiniFuzz());
+            i.Start();
         }
 
         /// <summary>

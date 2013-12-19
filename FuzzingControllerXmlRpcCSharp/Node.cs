@@ -282,7 +282,10 @@
         {
             try
             {
-                this.service.Close();
+                if (this.IsConnectedToController())
+                {
+                    this.service.Close();
+                }
             }
             catch
             {
