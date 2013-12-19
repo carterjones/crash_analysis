@@ -13,8 +13,15 @@
     /// </summary>
     internal class ControllerService : XmlRpcListenerService
     {
+        /// <summary>
+        /// The node manager to be used by this service.
+        /// </summary>
         private NodeManager nm = null;
 
+        /// <summary>
+        /// Initializes a new instance of the ControllerService class.
+        /// </summary>
+        /// <param name="nm">a reference to the node manager to be used by this service</param>
         internal ControllerService(ref NodeManager nm)
         {
             this.nm = nm;
@@ -33,7 +40,7 @@
                 return;
             }
 
-            Node node = nm.AddNode(address);
+            Node node = this.nm.AddNode(address);
             node.Initialize();
         }
     }

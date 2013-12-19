@@ -32,8 +32,11 @@
             Thread handleRequests = new Thread(() => HandleIncomingRequests(listener, svc));
             handleRequests.Start();
 
-            // Initialize nodes.
-            InitializeNodes(nm);
+            // Add the nodes to the node manager.
+            ReadIpAddressesFromFile("ip_list.txt").ToList().ForEach(n => nm.AddNode(n));
+
+            // Initialize the nodes.
+            nm.InitializeNodes();
 
             while (true)
             {
@@ -55,7 +58,7 @@
                 }
                 else if (userInput.Equals("update"))
                 {
-                    nm.UpdateNodes();
+                    nm.UpdateStatusOfNodes();
                     nm.ListNodes();
                 }
                 else if (userInput.Equals("reconnect"))
@@ -120,6 +123,11 @@
             }
         }
 
+        /// <summary>
+        /// Reads a list of IP addresses from a file.
+        /// </summary>
+        /// <param name="filename">a file containing IP addresses separated by newline</param>
+        /// <returns>an enumerable containing IP addresses read from the file</returns>
         private static IEnumerable<IPAddress> ReadIpAddressesFromFile(string filename)
         {
             IPAddress address = null;
@@ -135,19 +143,6 @@
                     Console.WriteLine("[-] Could not parse IP address: " + addressStr);
                 }
             }
-        }
-
-        /// <summary>
-        /// Initializes all fuzzing nodes, causing them to connect back to the controller.
-        /// </summary>
-        /// <param name="svc">the Controller service</param>
-        private static void InitializeNodes(NodeManager nm)
-        {
-            // Add the nodes to the node manager.
-            ReadIpAddressesFromFile("ip_list.txt").ToList().ForEach(n => nm.AddNode(n));
-
-            // Initialize the nodes.
-            nm.InitializeNodes();
         }
     }
 }

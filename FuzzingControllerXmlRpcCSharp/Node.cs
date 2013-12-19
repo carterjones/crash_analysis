@@ -17,15 +17,17 @@
     /// </summary>
     internal class Node
     {
+        #region Fields
+
         /// <summary>
         /// The username for this node.
         /// </summary>
-        private string Username = "admin";
+        private string username = "admin";
 
         /// <summary>
         /// The password for this node.
         /// </summary>
-        private string Password = "1";
+        private string password = "1";
 
         /// <summary>
         /// Used for storing the output and error messages for processes started this node object.
@@ -37,11 +39,24 @@
         /// </summary>
         private INodeService service;
 
+        /// <summary>
+        /// A flag indicating that the controller has successfully authenticated with the node by using "net use".
+        /// </summary>
         private bool isAuthenticatedWithNetUse = false;
 
+        /// <summary>
+        /// A flag indicating that the installer directory has been created on the node.
+        /// </summary>
         private bool installerDirectoryCreated = false;
 
+        /// <summary>
+        /// A flag indicating that the node has been initialized.
+        /// </summary>
         private bool isInitialized = false;
+
+        #endregion
+
+        #region Constructor(s)
 
         /// <summary>
         /// Initializes a new instance of the Node class.
@@ -59,6 +74,10 @@
             this.BangExploitableInstalled = InstallationStatus.Unknown;
             this.AutoitInstalled = InstallationStatus.Unknown;
         }
+
+        #endregion
+
+        #region Enumerations
 
         /// <summary>
         /// A collection of connection statuses that represent various states of the node.
@@ -108,6 +127,10 @@
             NotInstalled
         }
 
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Gets the IP address of the node.
         /// </summary>
@@ -142,6 +165,75 @@
         /// Gets a value indicating if AutoIt is installed on the node.
         /// </summary>
         internal InstallationStatus AutoitInstalled { get; private set; }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Calculates a hash to represent the identity of this object.
+        /// </summary>
+        /// <returns>the hash representation of this object</returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+
+                hash = (hash * 23) + this.Address.GetHashCode();
+
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// Determines if the supplied object is the same as the current object.
+        /// </summary>
+        /// <param name="obj">the object to be tested</param>
+        /// <returns>true if the supplied object is the same as the current object</returns>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != typeof(Node))
+            {
+                return false;
+            }
+
+            return this.Equals((Node)obj);
+        }
+
+        /// <summary>
+        /// Determines if the supplied object is the same as the current object.
+        /// </summary>
+        /// <param name="obj">the object to be tested</param>
+        /// <returns>true if the supplied object is the same as the current object</returns>
+        public bool Equals(Node obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return this.Address.Equals(obj.Address);
+        }
+
+        #endregion
+
+        #region Internal Methods
 
         /// <summary>
         /// Tests if the node is online, offline, or something unknown.
@@ -213,26 +305,17 @@
             }
         }
 
-        private void AuthenticateWithNetUse()
-        {
-            if (!this.isAuthenticatedWithNetUse)
-            {
-                ExecuteLocalCommand(@"net use \\" + this.Address + " /user:" + this.Username + " " + this.Password);
-                this.isAuthenticatedWithNetUse = true;
-            }
-        }
-
+        /// <summary>
+        /// Copies a file to the node.
+        /// </summary>
+        /// <param name="localPath">the path to the local file</param>
+        /// <param name="nodePath">the destination path on the node</param>
         internal void CopyFileToNode(string localPath, string nodePath)
         {
-            AuthenticateWithNetUse();
+            this.AuthenticateWithNetUse();
             string normalizedLocalPath = Path.GetFullPath(localPath);
             string normalizedNodePath = nodePath.ToLower().Replace("c:", @"c$");
-            ExecuteLocalCommand("cmd /c copy " + localPath + @" \\" + this.Address + @"\" + normalizedNodePath);
-        }
-
-        internal static void Initialize(Node node)
-        {
-            node.Initialize();
+            this.ExecuteLocalCommand("cmd /c copy " + localPath + @" \\" + this.Address + @"\" + normalizedNodePath);
         }
 
         /// <summary>
@@ -240,7 +323,7 @@
         /// </summary>
         internal void Initialize()
         {
-            if (isInitialized)
+            if (this.isInitialized)
             {
                 return;
             }
@@ -251,13 +334,13 @@
             }
 
             // Create a directory on the remote system.
-            PsExec(@"cmd /c mkdir c:\fuzzing_tools");
+            this.PsExec(@"cmd /c mkdir c:\fuzzing_tools");
 
             // Copy the scripts to the remote system.
             string[] scripts = { "node_server.py", "start_minifuzz.au3", "stop_minifuzz.au3", "triage.py" };
             foreach (string script in scripts)
             {
-                CopyFileToNode(@"..\..\..\" + script, @"c:\fuzzing_tools\" + script);
+                this.CopyFileToNode(@"..\..\..\" + script, @"c:\fuzzing_tools\" + script);
             }
 
             // Verify that the necessary software is installed.
@@ -269,18 +352,7 @@
                 this.Connect();
             }
 
-            isInitialized = true;
-        }
-
-        private void CopyInstallerToNode(string installerFileName)
-        {
-            if (!installerDirectoryCreated)
-            {
-                PsExec(@"cmd /c mkdir c:\fuzzing_tools\installers");
-                this.installerDirectoryCreated = true;
-            }
-
-            CopyFileToNode(@"..\..\..\installers\" + installerFileName, @"c:\fuzzing_tools\installers\" + installerFileName);
+            this.isInitialized = true;
         }
 
         /// <summary>
@@ -294,28 +366,28 @@
             // Install AutoIt.
             if (this.AutoitInstalled != InstallationStatus.Installed)
             {
-                CopyInstallerToNode("autoit-v3-setup.exe");
+                this.CopyInstallerToNode("autoit-v3-setup.exe");
                 this.PsExec(@"c:\fuzzing_tools\installers\autoit-v3-setup.exe /S");
             }
 
             // Install WinDbg.
             if (this.WindbgInstalled != InstallationStatus.Installed)
             {
-                CopyInstallerToNode("dbg_x86.msi");
+                this.CopyInstallerToNode("dbg_x86.msi");
                 this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\dbg_x86.msi /q");
             }
 
             // Install !exploitable.
             if (this.BangExploitableInstalled != InstallationStatus.Installed)
             {
-                CopyInstallerToNode("MSEC.dll");
+                this.CopyInstallerToNode("MSEC.dll");
                 this.PsExec(@"cmd /c copy C:\fuzzing_tools\installers\MSEC.dll ""C:\Program Files\Debugging Tools for Windows (x86)\MSEC.dll""");
             }
 
             // Install Python 2.7.
             if (this.PythonInstalled != InstallationStatus.Installed)
             {
-                CopyInstallerToNode("python-2.7.6.msi");
+                this.CopyInstallerToNode("python-2.7.6.msi");
                 this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\python-2.7.6.msi /q");
             }
 
@@ -330,7 +402,7 @@
                     }
                 }
 
-                CopyInstallerToNode("ez_setup.py");
+                this.CopyInstallerToNode("ez_setup.py");
                 this.PsExec(@"C:\Python27\python.exe c:\fuzzing_tools\installers\ez_setup.py");
                 this.PsExec(@"c:\python27\scripts\easy_install psutil");
             }
@@ -339,6 +411,7 @@
         /// <summary>
         /// Determines if the node is online and connected to the controller service.
         /// </summary>
+        /// <param name="performUpdate">if true, the node status is updated prior to returning the result</param>
         /// <returns>true if the node is online and connected to the controller service</returns>
         internal bool IsConnectedToController(bool performUpdate = false)
         {
@@ -352,6 +425,10 @@
             }
         }
 
+        /// <summary>
+        /// Ping the node to see if it is online.
+        /// </summary>
+        /// <returns>true if the host successfully responds to the ping</returns>
         internal bool IsOnline()
         {
             PingReply reply = new Ping().Send(this.Address);
@@ -434,7 +511,7 @@
             }
 
             // Install VLC.
-            CopyInstallerToNode("vlc-2.1.1-win32.exe");
+            this.CopyInstallerToNode("vlc-2.1.1-win32.exe");
             this.PsExec(@"c:\fuzzing_tools\installers\vlc-2.1.1-win32.exe /L=1033 /S");
         }
 
@@ -451,73 +528,43 @@
             }
 
             // Install MiniFuzz.
-            CopyInstallerToNode("MiniFuzzSetup.msi");
+            this.CopyInstallerToNode("MiniFuzzSetup.msi");
             this.PsExec(@"msiexec /i c:\fuzzing_tools\installers\MiniFuzzSetup.msi /q");
 
             // Copy configuration file over to node.
-            CopyInstallerToNode("minifuzz.cfg");
+            this.CopyInstallerToNode("minifuzz.cfg");
             this.PsExec(@"cmd /c copy c:\fuzzing_tools\installers\minifuzz.cfg ""C:\Program Files\Microsoft\MiniFuzz\minifuzz.cfg"" /y");
         }
 
+        #endregion
+
+        #region Private Methods
+
         /// <summary>
-        /// Calculates a hash to represent the identity of this object.
+        /// Authenticate with the node using "net use".
         /// </summary>
-        /// <returns>the hash representation of this object</returns>
-        public override int GetHashCode()
+        private void AuthenticateWithNetUse()
         {
-            unchecked
+            if (!this.isAuthenticatedWithNetUse)
             {
-                int hash = 17;
-
-                hash = (hash * 23) + this.Address.GetHashCode();
-
-                return hash;
+                this.ExecuteLocalCommand(@"net use \\" + this.Address + " /user:" + this.username + " " + this.password);
+                this.isAuthenticatedWithNetUse = true;
             }
         }
 
         /// <summary>
-        /// Determines if the supplied object is the same as the current object.
+        /// Copies the specified installation file to the node's installation directory.
         /// </summary>
-        /// <param name="obj">the object to be tested</param>
-        /// <returns>true if the supplied object is the same as the current object</returns>
-        public override bool Equals(object obj)
+        /// <param name="installerFileName">the filename of the installation file in the local installer directory</param>
+        private void CopyInstallerToNode(string installerFileName)
         {
-            if (ReferenceEquals(null, obj))
+            if (!this.installerDirectoryCreated)
             {
-                return false;
+                this.PsExec(@"cmd /c mkdir c:\fuzzing_tools\installers");
+                this.installerDirectoryCreated = true;
             }
 
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            if (obj.GetType() != typeof(Node))
-            {
-                return false;
-            }
-
-            return this.Equals((Node)obj);
-        }
-
-        /// <summary>
-        /// Determines if the supplied object is the same as the current object.
-        /// </summary>
-        /// <param name="obj">the object to be tested</param>
-        /// <returns>true if the supplied object is the same as the current object</returns>
-        internal bool Equals(Node obj)
-        {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return this.Address.Equals(obj.Address);
+            this.CopyFileToNode(@"..\..\..\installers\" + installerFileName, @"c:\fuzzing_tools\installers\" + installerFileName);
         }
 
         /// <summary>
@@ -529,7 +576,7 @@
         {
             if (!string.IsNullOrEmpty(outLine.Data))
             {
-                globalOutErr.Output += outLine.Data + Environment.NewLine;
+                this.globalOutErr.Output += outLine.Data + Environment.NewLine;
             }
         }
 
@@ -542,7 +589,7 @@
         {
             if (!string.IsNullOrEmpty(errLine.Data))
             {
-                globalOutErr.Error += errLine.Data + Environment.NewLine;
+                this.globalOutErr.Error += errLine.Data + Environment.NewLine;
             }
         }
 
@@ -572,13 +619,13 @@
                 }
             }
 
-            globalOutErr.Output = string.Empty;
-            globalOutErr.Error = string.Empty;
+            this.globalOutErr.Output = string.Empty;
+            this.globalOutErr.Error = string.Empty;
 
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
-            p.OutputDataReceived += new DataReceivedEventHandler(OutputReciever);
-            p.ErrorDataReceived += new DataReceivedEventHandler(ErrorReciever);
+            p.OutputDataReceived += new DataReceivedEventHandler(this.OutputReciever);
+            p.ErrorDataReceived += new DataReceivedEventHandler(this.ErrorReciever);
             p.StartInfo.Arguments = arguments;
             p.StartInfo.UseShellExecute = false;
             p.Start();
@@ -588,11 +635,11 @@
 
             if (showOutput)
             {
-                Console.WriteLine(globalOutErr.Output);
-                Console.WriteLine(globalOutErr.Error);
+                Console.WriteLine(this.globalOutErr.Output);
+                Console.WriteLine(this.globalOutErr.Error);
             }
 
-            return new OutErr(globalOutErr);
+            return new OutErr(this.globalOutErr);
         }
 
         /// <summary>
@@ -607,8 +654,10 @@
                 throw new InvalidOperationException(this.Address.ToString() + " is offline. Cannot execute PsExec command.");
             }
 
-            string fullCommand = @"psexec \\" + this.Address.ToString() + " -u " + Username + " -p " + Password + " " + command;
-            return ExecuteLocalCommand(fullCommand);
+            string fullCommand = @"psexec \\" + this.Address.ToString() + " -u " + this.username + " -p " + this.password + " " + command;
+            return this.ExecuteLocalCommand(fullCommand);
         }
+
+        #endregion
     }
 }
