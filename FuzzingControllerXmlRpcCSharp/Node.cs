@@ -17,6 +17,8 @@
     /// </summary>
     internal class Node
     {
+        #region Fields
+
         /// <summary>
         /// The username for this node.
         /// </summary>
@@ -52,6 +54,10 @@
         /// </summary>
         private bool isInitialized = false;
 
+        #endregion
+
+        #region Constructor(s)
+
         /// <summary>
         /// Initializes a new instance of the Node class.
         /// </summary>
@@ -68,6 +74,10 @@
             this.BangExploitableInstalled = InstallationStatus.Unknown;
             this.AutoitInstalled = InstallationStatus.Unknown;
         }
+
+        #endregion
+
+        #region Enumerations
 
         /// <summary>
         /// A collection of connection statuses that represent various states of the node.
@@ -117,6 +127,10 @@
             NotInstalled
         }
 
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Gets the IP address of the node.
         /// </summary>
@@ -151,6 +165,10 @@
         /// Gets a value indicating if AutoIt is installed on the node.
         /// </summary>
         internal InstallationStatus AutoitInstalled { get; private set; }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Calculates a hash to represent the identity of this object.
@@ -212,6 +230,10 @@
 
             return this.Address.Equals(obj.Address);
         }
+
+        #endregion
+
+        #region Internal Methods
 
         /// <summary>
         /// Tests if the node is online, offline, or something unknown.
@@ -514,6 +536,10 @@
             this.PsExec(@"cmd /c copy c:\fuzzing_tools\installers\minifuzz.cfg ""C:\Program Files\Microsoft\MiniFuzz\minifuzz.cfg"" /y");
         }
 
+        #endregion
+
+        #region Private Methods
+
         /// <summary>
         /// Authenticate with the node using "net use".
         /// </summary>
@@ -631,5 +657,7 @@
             string fullCommand = @"psexec \\" + this.Address.ToString() + " -u " + this.username + " -p " + this.password + " " + command;
             return this.ExecuteLocalCommand(fullCommand);
         }
+
+        #endregion
     }
 }

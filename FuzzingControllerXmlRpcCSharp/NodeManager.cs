@@ -12,10 +12,16 @@
     /// </summary>
     internal class NodeManager
     {
+        #region Fields
+
         /// <summary>
         /// The currently tracked list of nodes.
         /// </summary>
         private List<Node> nodes = new List<Node>();
+
+        #endregion
+
+        #region Internal Methods
 
         /// <summary>
         /// Add an uninitialized node to the list of nodes. If the node already exists, returns the existing node.
@@ -146,6 +152,10 @@
             this.PerformActionOnNodesInParallel(n => n.DeployMiniFuzz());
         }
 
+        #endregion
+
+        #region Private Methods
+
         /// <summary>
         /// Execute a node function on all nodes controlled by this manager.
         /// </summary>
@@ -160,5 +170,7 @@
 
             Task.WaitAll(tasks.ToArray());
         }
+
+        #endregion
     }
 }
