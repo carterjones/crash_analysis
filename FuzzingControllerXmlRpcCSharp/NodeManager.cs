@@ -48,7 +48,7 @@
         /// </summary>
         internal void CloseNodeListeners()
         {
-            PerformActionOnNodesInParallel(n => n.Close());
+            this.PerformActionOnNodesInParallel(n => n.Close());
         }
 
         /// <summary>
@@ -56,7 +56,14 @@
         /// </summary>
         internal void ReconnectNodes()
         {
-            PerformActionOnNodesInParallel(n => { if (n.UpdateStatus() != Node.ConnectionStatus.Online) n.Connect(); });
+            Action<Node> a = n =>
+            {
+                if (n.UpdateStatus() != Node.ConnectionStatus.Online)
+                {
+                    n.Connect();
+                }
+            };
+            this.PerformActionOnNodesInParallel(a);
         }
 
         /// <summary>
