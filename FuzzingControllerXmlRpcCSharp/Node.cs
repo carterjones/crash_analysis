@@ -15,7 +15,7 @@
     /// <summary>
     /// Represents a fuzzing machine (node).
     /// </summary>
-    public class Node
+    internal class Node
     {
         /// <summary>
         /// The username for this node.
@@ -47,7 +47,7 @@
         /// Initializes a new instance of the Node class.
         /// </summary>
         /// <param name="address">the IP address of the node</param>
-        public Node(IPAddress address)
+        internal Node(IPAddress address)
         {
             this.Address = address;
             this.Status = ConnectionStatus.Unknown;
@@ -63,7 +63,7 @@
         /// <summary>
         /// A collection of connection statuses that represent various states of the node.
         /// </summary>
-        public enum ConnectionStatus
+        internal enum ConnectionStatus
         {
             /// <summary>
             /// Represents an unknown state of the connection.
@@ -87,7 +87,7 @@
         /// <summary>
         /// A collection of installation statuses that represent if an application is installed on the node.
         /// </summary>
-        public enum InstallationStatus
+        internal enum InstallationStatus
         {
             /// <summary>
             /// Represents an unknown state of the installation.
@@ -111,43 +111,43 @@
         /// <summary>
         /// Gets the IP address of the node.
         /// </summary>
-        public IPAddress Address { get; private set; }
+        internal IPAddress Address { get; private set; }
 
         /// <summary>
         /// Gets the last cached status of the connection.
         /// </summary>
-        public ConnectionStatus Status { get; private set; }
+        internal ConnectionStatus Status { get; private set; }
 
         /// <summary>
         /// Gets a value indicating if Python 2.7 is installed on the node.
         /// </summary>
-        public InstallationStatus PythonInstalled { get; private set; }
+        internal InstallationStatus PythonInstalled { get; private set; }
 
         /// <summary>
         /// Gets a value indicating if psutil is installed on the node.
         /// </summary>
-        public InstallationStatus PsutilInstalled { get; private set; }
+        internal InstallationStatus PsutilInstalled { get; private set; }
 
         /// <summary>
         /// Gets a value indicating if WinDbg is installed on the node.
         /// </summary>
-        public InstallationStatus WindbgInstalled { get; private set; }
+        internal InstallationStatus WindbgInstalled { get; private set; }
 
         /// <summary>
         /// Gets a value indicating if !exploitable is installed on the node.
         /// </summary>
-        public InstallationStatus BangExploitableInstalled { get; private set; }
+        internal InstallationStatus BangExploitableInstalled { get; private set; }
 
         /// <summary>
         /// Gets a value indicating if AutoIt is installed on the node.
         /// </summary>
-        public InstallationStatus AutoitInstalled { get; private set; }
+        internal InstallationStatus AutoitInstalled { get; private set; }
 
         /// <summary>
         /// Tests if the node is online, offline, or something unknown.
         /// </summary>
         /// <returns>the result of the test</returns>
-        public ConnectionStatus UpdateStatus()
+        internal ConnectionStatus UpdateStatus()
         {
             if (!this.IsOnline())
             {
@@ -178,7 +178,7 @@
         /// </summary>
         /// <param name="command">the command to be executed</param>
         /// <returns>the output of the command</returns>
-        public string ExecuteCommand(string command)
+        internal string ExecuteCommand(string command)
         {
             return this.service.ExecuteCommand(command);
         }
@@ -186,7 +186,7 @@
         /// <summary>
         /// Close the listening server on the node.
         /// </summary>
-        public void Close()
+        internal void Close()
         {
             try
             {
@@ -200,8 +200,13 @@
         /// <summary>
         /// Remotely start the node server that connects back to this controller if it is not already online.
         /// </summary>
-        public void Connect()
+        internal void Connect()
         {
+            if (!this.IsOnline())
+            {
+                return;
+            }
+
             if (!this.IsConnectedToController(true))
             {
                 this.PsExec(@"-i -d ""C:\Python27\python.exe"" ""C:\fuzzing_tools\node_server.py""");
@@ -217,7 +222,7 @@
             }
         }
 
-        public void CopyFileToNode(string localPath, string nodePath)
+        internal void CopyFileToNode(string localPath, string nodePath)
         {
             AuthenticateWithNetUse();
             string normalizedLocalPath = Path.GetFullPath(localPath);
@@ -225,7 +230,7 @@
             ExecuteLocalCommand("cmd /c copy " + localPath + @" \\" + this.Address + @"\" + normalizedNodePath);
         }
 
-        public static void Initialize(Node node)
+        internal static void Initialize(Node node)
         {
             node.Initialize();
         }
@@ -233,7 +238,7 @@
         /// <summary>
         /// Initializes the scripts to be run on a node. Connects the node to this controller.
         /// </summary>
-        public void Initialize()
+        internal void Initialize()
         {
             if (isInitialized)
             {
@@ -281,7 +286,7 @@
         /// <summary>
         /// Installs necessary software on the node.
         /// </summary>
-        public void InstallBaseSoftware()
+        internal void InstallBaseSoftware()
         {
             // See what software is installed.
             this.CheckForBaseInstallations();
@@ -335,7 +340,7 @@
         /// Determines if the node is online and connected to the controller service.
         /// </summary>
         /// <returns>true if the node is online and connected to the controller service</returns>
-        public bool IsConnectedToController(bool performUpdate = false)
+        internal bool IsConnectedToController(bool performUpdate = false)
         {
             if (performUpdate)
             {
@@ -347,7 +352,7 @@
             }
         }
 
-        public bool IsOnline()
+        internal bool IsOnline()
         {
             PingReply reply = new Ping().Send(this.Address);
             return reply.Status == IPStatus.Success;
@@ -357,7 +362,7 @@
         /// Determines if the node has various pieces of software installed required for controlling the node.
         /// </summary>
         /// <returns>true if all the necessary software is installed</returns>
-        public bool CheckForBaseInstallations()
+        internal bool CheckForBaseInstallations()
         {
             OutErr oe = this.PsExec(@"cmd /c dir c:\");
             if (oe.Output.ToLower().Contains("python27"))
@@ -419,7 +424,7 @@
         /// <summary>
         /// Install VLC on the node, if it is not already installed.
         /// </summary>
-        public void DeployVlc()
+        internal void DeployVlc()
         {
             OutErr oe = this.PsExec(@"cmd /c dir ""c:\program files\""");
             if (oe.Output.ToLower().Contains("videolan"))
@@ -436,7 +441,7 @@
         /// <summary>
         /// Install MiniFuzz on the node, if it is not already installed.
         /// </summary>
-        public void DeployMiniFuzz()
+        internal void DeployMiniFuzz()
         {
             OutErr oe = this.PsExec(@"cmd /c dir ""C:\Program Files\Microsoft\""");
             if (oe.Output.ToLower().Contains("minifuzz"))
@@ -500,7 +505,7 @@
         /// </summary>
         /// <param name="obj">the object to be tested</param>
         /// <returns>true if the supplied object is the same as the current object</returns>
-        public bool Equals(Node obj)
+        internal bool Equals(Node obj)
         {
             if (ReferenceEquals(null, obj))
             {

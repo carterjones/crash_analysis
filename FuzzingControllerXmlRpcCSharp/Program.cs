@@ -19,13 +19,14 @@
         /// <summary>
         /// A list of IP addresses of fuzzing nodes.
         /// </summary>
-        private static string[] nodeAddresses = { //"192.168.139.134",
+        private static string[] nodeAddresses = { "192.168.91.128",
+                                                  "192.168.139.134",
                                                   "192.168.139.148",
                                                   "192.168.139.149",
-                                                  "192.168.139.150"};//,
-                                                  //"192.168.139.151",
-                                                  //"192.168.139.152",
-                                                  //"192.168.139.153" };
+                                                  "192.168.139.150",
+                                                  "192.168.139.151",
+                                                  "192.168.139.152",
+                                                  "192.168.139.153" };
 
         /// <summary>
         /// The entry point of the program.
@@ -33,7 +34,8 @@
         /// <param name="args">command line arguments passed to the program</param>
         public static void Main(string[] args)
         {
-            ControllerService svc = new ControllerService();
+            NodeManager nm = new NodeManager();
+            ControllerService svc = new ControllerService(ref nm);
             HttpListener listener = new HttpListener();
             listener.Prefixes.Add("http://192.168.139.1:8000/");
             listener.Start();
@@ -43,7 +45,7 @@
             handleRequests.Start();
 
             // Initialize nodes.
-            InitializeNodes(svc);
+            InitializeNodes(nm);
 
             while (true)
             {
@@ -51,7 +53,7 @@
                 string userInput = Console.ReadLine();
                 if (userInput.Equals("exit"))
                 {
-                    svc.CloseNodeListeners();
+                    nm.CloseNodeListeners();
                     listener.Stop();
                     break;
                 }
@@ -61,32 +63,32 @@
                 }
                 else if (userInput.Equals("nodes"))
                 {
-                    ListNodes(svc);
+                    nm.ListNodes();
                 }
                 else if (userInput.Equals("update"))
                 {
-                    PerformActionOnNodesInParallel(n => n.UpdateStatus(), svc.GetNodes());
-                    ListNodes(svc);
+                    nm.UpdateNodes();
+                    nm.ListNodes();
                 }
                 else if (userInput.Equals("reconnect"))
                 {
-                    PerformActionOnNodesInParallel(n => n.Connect(), svc.GetNodes());
+                    nm.ConnectNodes();
                 }
                 else if (userInput.Equals("software"))
                 {
-                    ListSoftware(svc.GetNodes());
+                    nm.ListSoftware();
                 }
                 else if (userInput.Equals("install"))
                 {
-                    PerformActionOnNodesInParallel(n => n.InstallBaseSoftware(), svc.GetNodes());
+                    nm.InstallBaseSoftware();
                 }
                 else if (userInput.Equals("deploy-vlc"))
                 {
-                    PerformActionOnNodesInParallel(n => n.DeployVlc(), svc.GetNodes());
+                    nm.DeployVlc();
                 }
                 else if (userInput.Equals("deploy-minifuzz"))
                 {
-                    PerformActionOnNodesInParallel(n => n.DeployMiniFuzz(), svc.GetNodes());
+                    nm.DeployMiniFuzz();
                 }
                 else if (userInput.Equals("help"))
                 {
@@ -134,17 +136,17 @@
         /// Initializes all fuzzing nodes, causing them to connect back to the controller.
         /// </summary>
         /// <param name="svc">the Controller service</param>
-        private static void InitializeNodes(ControllerService svc)
+        private static void InitializeNodes(NodeManager nm)
         {
             List<Node> nodes = new List<Node>();
             IPAddress address = null;
 
-            // Add the nodes to the controller.
+            // Add the nodes to the node manager.
             foreach (string addressStr in nodeAddresses)
             {
                 if (IPAddress.TryParse(addressStr, out address))
                 {
-                    nodes.Add(svc.AddNode(address));
+                    nodes.Add(nm.AddNode(address));
                 }
                 else
                 {
@@ -153,54 +155,7 @@
             }
 
             // Initialize the nodes.
-            PerformActionOnNodesInParallel(n => n.Initialize(), svc.GetNodes());
-        }
-
-        /// <summary>
-        /// Prints the tracked nodes out to the console.
-        /// </summary>
-        /// <param name="svc">the Controller service</param>
-        private static void ListNodes(ControllerService svc)
-        {
-            Console.WriteLine("Status | IP Address");
-            foreach (Node node in svc.GetNodes())
-            {
-                Console.WriteLine("  [" + node.Status.DescriptionAttr() + "]  | " + node.Address.ToString());
-            }
-        }
-
-        /// <summary>
-        /// List the base software installed on a node.
-        /// </summary>
-        /// <param name="svc">the controller service</param>
-        private static void ListSoftware(IEnumerable<Node> nodes)
-        {
-            PerformActionOnNodesInParallel(n => { n.CheckForBaseInstallations(); n.UpdateStatus(); }, nodes);
-
-            foreach (Node node in nodes)
-            {
-                if (!node.IsConnectedToController())
-                {
-                    Console.WriteLine(node.Address.ToString() + ":");
-                    Console.WriteLine("  python:       " + node.PythonInstalled.DescriptionAttr());
-                    Console.WriteLine("  psutil:       " + node.PsutilInstalled.DescriptionAttr());
-                    Console.WriteLine("  windbg:       " + node.WindbgInstalled.DescriptionAttr());
-                    Console.WriteLine("  !exploitable: " + node.BangExploitableInstalled.DescriptionAttr());
-                    Console.WriteLine("  AutoIt:       " + node.AutoitInstalled.DescriptionAttr());
-                    Console.WriteLine();
-                }
-            }
-        }
-
-        private static void PerformActionOnNodesInParallel(Action<Node> a, IEnumerable<Node> nodes)
-        {
-            List<Task> tasks = new List<Task>();
-            foreach (Node node in nodes)
-            {
-                tasks.Add(Task.Run(() => a(node)));
-            }
-
-            Task.WaitAll(tasks.ToArray());
+            nm.InitializeNodes();
         }
     }
 }
