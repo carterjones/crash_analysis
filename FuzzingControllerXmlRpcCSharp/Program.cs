@@ -58,7 +58,7 @@
                 }
                 else if (userInput.Equals("update"))
                 {
-                    nm.UpdateNodes();
+                    nm.UpdateStatusOfNodes();
                     nm.ListNodes();
                 }
                 else if (userInput.Equals("reconnect"))

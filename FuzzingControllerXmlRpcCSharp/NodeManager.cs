@@ -7,6 +7,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
+    /// <summary>
+    /// Performs bulk operations on a collection of nodes.
+    /// </summary>
     internal class NodeManager
     {
         /// <summary>
@@ -18,6 +21,7 @@
         /// Add an uninitialized node to the list of nodes. If the node already exists, returns the existing node.
         /// </summary>
         /// <param name="address">the IP address of the node</param>
+        /// <returns>the node that was added, or the matching pre-existing node</returns>
         internal Node AddNode(IPAddress address)
         {
             Node node = new Node(address);
@@ -34,7 +38,7 @@
         }
 
         /// <summary>
-        /// Shut down the servers listening on each of the nodes.
+        /// Shut down the servers listening on all nodes controlled by this manager.
         /// </summary>
         /// TODO: make this threaded
         internal void CloseNodeListeners()
@@ -46,7 +50,7 @@
         }
 
         /// <summary>
-        /// Reconnects nodes that are not online.
+        /// Reconnects offline nodes controlled by this manager.
         /// </summary>
         /// TODO: make this threaded
         internal void ReconnectNodes()
@@ -60,17 +64,20 @@
             }
         }
 
+        /// <summary>
+        /// Initialize all nodes controlled by this manager.
+        /// </summary>
         internal void InitializeNodes()
         {
-            PerformActionOnNodesInParallel(n => n.Initialize());
+            this.PerformActionOnNodesInParallel(n => n.Initialize());
         }
 
         /// <summary>
-        /// List the base software installed on a node.
+        /// List the base software installed on all nodes controlled by this manager.
         /// </summary>
         internal void ListSoftware()
         {
-            PerformActionOnNodesInParallel(n => { n.CheckForBaseInstallations(); n.UpdateStatus(); });
+            this.PerformActionOnNodesInParallel(n => { n.CheckForBaseInstallations(); n.UpdateStatus(); });
 
             foreach (Node node in this.nodes)
             {
@@ -88,7 +95,7 @@
         }
 
         /// <summary>
-        /// Prints the tracked nodes out to the console.
+        /// Prints the IP address of all nodes controlled by this manager.
         /// </summary>
         internal void ListNodes()
         {
@@ -99,31 +106,50 @@
             }
         }
 
-        internal void UpdateNodes()
+        /// <summary>
+        /// Update the status of all nodes controlled by this manager.
+        /// </summary>
+        internal void UpdateStatusOfNodes()
         {
-            PerformActionOnNodesInParallel(n => n.UpdateStatus());
+            this.PerformActionOnNodesInParallel(n => n.UpdateStatus());
         }
 
+        /// <summary>
+        /// Cause all nodes controlled by this manager to connect to this controller.
+        /// </summary>
         internal void ConnectNodes()
         {
-            PerformActionOnNodesInParallel(n => n.Connect());
+            this.PerformActionOnNodesInParallel(n => n.Connect());
         }
 
+        /// <summary>
+        /// Install necessary software to all nodes controlled by this manager.
+        /// </summary>
         internal void InstallBaseSoftware()
         {
-            PerformActionOnNodesInParallel(n => n.InstallBaseSoftware());
+            this.PerformActionOnNodesInParallel(n => n.InstallBaseSoftware());
         }
 
+        /// <summary>
+        /// Deploy VLC to all nodes controlled by this manager.
+        /// </summary>
         internal void DeployVlc()
         {
-            PerformActionOnNodesInParallel(n => n.DeployVlc());
+            this.PerformActionOnNodesInParallel(n => n.DeployVlc());
         }
 
+        /// <summary>
+        /// Deploy MiniFuzz to all nodes controlled by this manager.
+        /// </summary>
         internal void DeployMiniFuzz()
         {
-            PerformActionOnNodesInParallel(n => n.DeployMiniFuzz());
+            this.PerformActionOnNodesInParallel(n => n.DeployMiniFuzz());
         }
 
+        /// <summary>
+        /// Execute a node function on all nodes controlled by this manager.
+        /// </summary>
+        /// <param name="a">the function call to be performed</param>
         private void PerformActionOnNodesInParallel(Action<Node> a)
         {
             List<Task> tasks = new List<Task>();
