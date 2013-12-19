@@ -11,7 +11,7 @@
     /// <summary>
     /// An XML-RPC service that permits nodes to register with this controller.
     /// </summary>
-    internal class ControllerService : XmlRpcListenerService
+    public class ControllerService : XmlRpcListenerService
     {
         /// <summary>
         /// The node manager to be used by this service.
@@ -32,7 +32,7 @@
         /// </summary>
         /// <param name="addressStr">the IP address of the node</param>
         [XmlRpcMethod("register_fuzzing_node")]
-        internal void RegisterFuzzingNode(string addressStr)
+        public void RegisterFuzzingNode(string addressStr)
         {
             IPAddress address = null;
             if (!IPAddress.TryParse(addressStr, out address))
