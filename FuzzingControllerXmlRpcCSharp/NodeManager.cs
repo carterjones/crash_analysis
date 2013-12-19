@@ -46,28 +46,17 @@
         /// <summary>
         /// Shut down the servers listening on all nodes controlled by this manager.
         /// </summary>
-        /// TODO: make this threaded
         internal void CloseNodeListeners()
         {
-            foreach (Node node in this.nodes)
-            {
-                node.Close();
-            }
+            PerformActionOnNodesInParallel(n => n.Close());
         }
 
         /// <summary>
         /// Reconnects offline nodes controlled by this manager.
         /// </summary>
-        /// TODO: make this threaded
         internal void ReconnectNodes()
         {
-            foreach (Node node in this.nodes)
-            {
-                if (node.UpdateStatus() != Node.ConnectionStatus.Online)
-                {
-                    node.Connect();
-                }
-            }
+            PerformActionOnNodesInParallel(n => { if (n.UpdateStatus() != Node.ConnectionStatus.Online) n.Connect(); });
         }
 
         /// <summary>
